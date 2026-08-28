@@ -164,3 +164,55 @@ describe('translations', () => {
     expect(missing, `untranslated stats: ${missing.join(', ')}`).toEqual([]);
   });
 });
+
+describe('item names', () => {
+  /**
+   * Sets with no confirmed Chinese name yet. Listing them keeps the gap visible
+   * while still failing on any set that becomes untranslated in future.
+   */
+  const UNTRANSLATED_SETS = ['Ember Engine'];
+
+  it('translates every generic set piece into Chinese', async () => {
+    const { tItem, setLang } = await import('../src/i18n/index.ts');
+    setLang('zh-tw');
+    const generic = allItems.filter((i) => !i.isNamed && !i.isExotic && (i.brandSet ?? i.gearSet));
+    const untranslated = generic
+      .filter((i) => tItem(i.name, i.slot, i.brandSet ?? i.gearSet) === i.name)
+      // 5.11 Tactical keeps its Latin brand name, so its pieces stay partly Latin.
+      .filter((i) => !i.name.startsWith('5.11 Tactical'))
+      .filter((i) => !UNTRANSLATED_SETS.includes(i.brandSet ?? i.gearSet ?? ''));
+    expect(untranslated.map((i) => i.name), 'generic pieces still in English').toEqual([]);
+  });
+
+  it('keeps the untranslated-set list honest — every entry must still be missing', async () => {
+    const { SET_ZH } = await import('../src/i18n/names.ts');
+    const names = new Set(data.sets.map((s) => s.name));
+    for (const set of UNTRANSLATED_SETS) {
+      expect(names, `${set} is no longer in the dataset`).toContain(set);
+      expect(SET_ZH[set], `${set} now has a translation — remove it from the list`).toBeUndefined();
+    }
+  });
+
+  it('composes a generic name from its set and slot', async () => {
+    const { tItem, setLang } = await import('../src/i18n/index.ts');
+    setLang('zh-tw');
+    expect(tItem('Providence Defense Mask', 'mask', 'Providence Defense')).toBe('天命防禦公司面罩');
+    expect(tItem('5.11 Tactical Kneepads', 'knees', '5.11 Tactical')).toBe('5.11 Tactical 護膝');
+  });
+
+  it('leaves item names untouched in English mode', async () => {
+    const { tItem, setLang } = await import('../src/i18n/index.ts');
+    setLang('en');
+    expect(tItem('Providence Defense Mask', 'mask', 'Providence Defense')).toBe('Providence Defense Mask');
+    setLang('zh-tw');
+  });
+
+  it('reports how many named and exotic items still lack a Chinese name', async () => {
+    const { ITEM_ZH } = await import('../src/i18n/names.ts');
+    const special = allItems.filter((i) => i.isNamed || i.isExotic);
+    const missing = special.filter((i) => !ITEM_ZH[i.name]);
+    // Not a failure: these fall back to English until confirmed names exist.
+    console.info(`  ℹ ${missing.length}/${special.length} named/exotic items have no Chinese name yet`);
+    expect(missing.length).toBeLessThanOrEqual(special.length);
+  });
+});

@@ -7,6 +7,8 @@ import { emptyBuild } from '../src/model/build.ts';
 import type { BuildState } from '../src/model/build.ts';
 import { activeSets, attributeIndex, computeBuild, defaultChoice, defaultChoicesFor, eligible } from '../src/model/calc/index.ts';
 import { SKILL_TIER_CAP, STAT_CAPS } from '../src/model/calc/constants.ts';
+import { resolveRecommended } from '../src/model/calc/recommend.ts';
+import { RECOMMENDED } from '../src/data/recommended.ts';
 
 const data: GameData = JSON.parse(readFileSync(new URL('../src/data/generated/game-data.json', import.meta.url), 'utf8'));
 const attrs = attributeIndex(data);
@@ -188,5 +190,81 @@ describe('default rolls', () => {
     const spec = exotic.cores[0]!;
     if (spec.mode !== 'fixed') return;
     expect(defaultChoicesFor(exotic, data, attrs).cores[0]!.attributeId).toBe(spec.attributeId);
+  });
+});
+
+describe('recommended builds', () => {
+  it('fills all six slots for every template', () => {
+    for (const template of RECOMMENDED) {
+      const { unfilled } = resolveRecommended(data, template);
+      expect(unfilled, `${template.id} left slots unfilled`).toEqual([]);
+    }
+  });
+
+  it('equips the piece counts each template asks for', () => {
+    for (const template of RECOMMENDED) {
+      const { build } = resolveRecommended(data, template);
+      const counts = new Map<string, number>();
+      for (const slot of GEAR_SLOTS) {
+        const id = build.gear[slot].itemId!;
+        const item = data.gear[slot].find((i) => i.id === id)!;
+        const set = item.brandSet ?? item.gearSet!;
+        counts.set(set, (counts.get(set) ?? 0) + 1);
+      }
+      for (const spec of template.sets) {
+        expect(counts.get(spec.name), `${template.id} → ${spec.name}`).toBe(spec.pieces);
+      }
+    }
+  });
+
+  it('never asks for more than six pieces', () => {
+    for (const template of RECOMMENDED) {
+      const total = template.sets.reduce((n, s) => n + s.pieces, 0);
+      expect(total, template.id).toBeLessThanOrEqual(6);
+    }
+  });
+
+  it('references only sets that exist', () => {
+    const names = new Set(data.sets.map((s) => s.name));
+    for (const template of RECOMMENDED) {
+      for (const spec of template.sets) expect(names, `${template.id} → ${spec.name}`).toContain(spec.name);
+    }
+  });
+
+  it('references only stats that exist', () => {
+    const ids = new Set(data.stats.map((s) => s.id));
+    for (const template of RECOMMENDED) {
+      expect(ids, `${template.id} core`).toContain(template.core);
+      for (const m of template.minors) expect(ids, `${template.id} minor`).toContain(m);
+    }
+  });
+
+  it('activates the four-piece talent of each primary gear set', () => {
+    for (const template of RECOMMENDED) {
+      const primary = template.sets[0]!;
+      if (primary.pieces < 4) continue;
+      const { build } = resolveRecommended(data, template);
+      const entry = activeSets(data, computeBuild(data, build).items).find((s) => s.set.name === primary.name);
+      expect(entry?.talents.length, `${template.id} → ${primary.name}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('produces a build with no empty-slot warning', () => {
+    for (const template of RECOMMENDED) {
+      const { build } = resolveRecommended(data, template);
+      const { warnings } = computeBuild(data, build);
+      expect(warnings.some((w) => w.includes('empty slot')), template.id).toBe(false);
+    }
+  });
+
+  it('gives every template a unique id and both languages', () => {
+    const ids = RECOMMENDED.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const r of RECOMMENDED) {
+      expect(r.name['zh-tw'], r.id).toBeTruthy();
+      expect(r.name.en, r.id).toBeTruthy();
+      expect(r.summary['zh-tw'], r.id).toBeTruthy();
+      expect(r.summary.en, r.id).toBeTruthy();
+    }
   });
 });

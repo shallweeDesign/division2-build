@@ -3,7 +3,7 @@ import type { AttributeDef, AttributeSlotSpec, GameData, GearItem, GearSlot, Val
 import { GEAR_SLOTS } from '../model/types.ts';
 import type { SlotChoice } from '../model/build.ts';
 import { attributeIndex, defaultChoice, defaultChoicesFor, eligible } from '../model/calc/index.ts';
-import { t, tCategory, tQuality, tSlot, tStat } from '../i18n/index.ts';
+import { t, tCategory, tItem, tQuality, tSet, tSlot, tStat } from '../i18n/index.ts';
 import { build, update } from './store.ts';
 import { clear, el, select } from './dom.ts';
 
@@ -26,7 +26,7 @@ const fmtValue = (v: Value | null) => (v === null ? '' : v.percent ? `${v.n}%` :
 function itemOptions(data: GameData, slot: GearSlot): [string, string][] {
   return [...data.gear[slot]]
     .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
-    .map((i) => [i.id, `[${tQuality(quality(i))}] ${i.name}`]);
+    .map((i) => [i.id, `[${tQuality(quality(i))}] ${tItem(i.name, slot, i.brandSet ?? i.gearSet)}`]);
 }
 
 /**
@@ -135,7 +135,7 @@ function slotCard(data: GameData, attrs: Map<string, AttributeDef>, slot: GearSl
         const picked = data.gear[slot].find((i) => i.id === v)!;
         b.gear[slot] = { itemId: v, ...defaultChoicesFor(picked, data, attrs) };
       }), t('empty')),
-    setName ? el('p', { class: `brand${item?.gearSet ? ' is-set' : ''}` }, [setName]) : null,
+    setName ? el('p', { class: `brand${item?.gearSet ? ' is-set' : ''}` }, [tSet(setName)]) : null,
     ...rows,
   ]);
 }

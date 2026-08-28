@@ -127,3 +127,37 @@ select, input[type="number"] {
 }
 
 .cap-flag { font-size: .7rem; }
+
+// 推薦套裝 / Recommended build gallery.
+.recommended { margin-top: 1.5rem; }
+
+.rec-head {
+  border-top: 1px solid $line; padding-top: 1rem; margin-bottom: .75rem;
+  h2 { margin: 0 0 .25rem; font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: $muted; }
+}
+
+.rec-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+
+.rec-card {
+  background: $panel; border: 1px solid $line; border-radius: 4px; padding: .75rem;
+  display: flex; flex-direction: column; gap: .4rem;
+
+  // A left rule keys the card to what the build is for.
+  border-left-width: 3px;
+  &.focus-dps { border-left-color: $offensive; }
+  &.focus-tank { border-left-color: $defensive; }
+  &.focus-skill { border-left-color: $skill; }
+  &.focus-support { border-left-color: #4fc08d; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+  h3 { margin: 0; font-size: .95rem; color: $text; }
+  button { margin-top: auto; align-self: flex-start; }
+}
+
+.rec-sets { margin: 0; font-size: .8rem; color: $accent; }
+.rec-summary { margin: 0; font-size: .8rem; color: $muted; line-height: 1.5; }
+
+.pill.focus-dps { color: $offensive; border-color: rgba($offensive, .5); }
+.pill.focus-tank { color: $defensive; border-color: rgba($defensive, .5); }
+.pill.focus-skill { color: $skill; border-color: rgba($skill, .5); }
+.pill.focus-support { color: #4fc08d; border-color: rgba(#4fc08d, .5); }

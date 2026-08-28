@@ -31,3 +31,9 @@ export function reset() {
   state = emptyBuild();
   for (const l of listeners) l('gear');
 }
+
+/** Replace the whole build, e.g. when loading a recommended template. */
+export function load(next: BuildState) {
+  state = next;
+  for (const l of listeners) l('gear');
+}

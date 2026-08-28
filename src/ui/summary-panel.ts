@@ -2,11 +2,15 @@
 import type { GameData } from '../model/types.ts';
 import { computeBuild } from '../model/calc/index.ts';
 import { MAX_PIECES } from '../model/calc/constants.ts';
-import { t, tStat } from '../i18n/index.ts';
+import { t, tSet, tStat } from '../i18n/index.ts';
 import { build } from './store.ts';
 import { clear, el } from './dom.ts';
 
-const round = (n: number) => Math.round(n * 100) / 100;
+/** Flat values like armour run into the millions, so group them for legibility. */
+const fmt = (n: number, percent: boolean) => {
+  const r = Math.round(n * 100) / 100;
+  return percent ? String(r) : r.toLocaleString('en-US');
+};
 
 export function renderSummaryPanel(root: HTMLElement, data: GameData) {
   const { stats, sets, warnings, coreCounts } = computeBuild(data, build());
@@ -35,7 +39,7 @@ export function renderSummaryPanel(root: HTMLElement, data: GameData) {
         ? el('ul', { class: 'set-list' }, sets.map((s) =>
             el('li', {}, [
               el('div', { class: 'set-head' }, [
-                el('strong', {}, [s.set.name]),
+                el('strong', {}, [tSet(s.set.name)]),
                 el('span', { class: `pill ${s.set.kind}` }, [`${s.pieces}/${MAX_PIECES[s.set.kind]} ${t('pieces')}`]),
               ]),
               el('ul', { class: 'tier-list' }, s.active.flatMap((tier) =>
@@ -65,9 +69,9 @@ export function renderSummaryPanel(root: HTMLElement, data: GameData) {
             el('tbody', {}, stats.map((s) =>
               el('tr', { class: s.capped ? 'is-capped' : '' }, [
                 el('th', {}, [name(s.statId)]),
-                el('td', { title: s.contributions.map((c) => `${c.source}: ${round(c.value)}`).join('\n') }, [
-                  `${round(s.value)}${s.percent ? '%' : ''}`,
-                  s.capped ? el('span', { class: 'cap-flag' }, [` ${t('capped')} (${round(s.raw)})`]) : null,
+                el('td', { title: s.contributions.map((c) => `${c.source}: ${fmt(c.value, s.percent)}`).join('\n') }, [
+                  `${fmt(s.value, s.percent)}${s.percent ? '%' : ''}`,
+                  s.capped ? el('span', { class: 'cap-flag' }, [` ${t('capped')} (${fmt(s.raw, s.percent)})`]) : null,
                 ]),
               ]))),
           ])

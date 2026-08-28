@@ -11,6 +11,8 @@ stats recalculate live. Bilingual zh-TW / en.
 
 - ✅ 6 個裝備部位、核心／詞條／模組／天賦選擇，套裝加成即時計算
 - ✅ 屬性加總、上限判定（爆擊機率 60%、技能階 6）、加成來源追溯
+- ✅ 10 套推薦配裝，一鍵套用
+- ✅ 中英雙語，含裝備名稱中譯
 - ⬜ Phase 3 武器與 DPS ／ Phase 4 技能與專精 ／ Phase 5 URL 分享與部署
 
 ## 資料來源 / Data source
@@ -54,6 +56,43 @@ npm run build    # data + typecheck + vite build
 unparseable slot syntax, and references to attributes, stats, talents or sets
 that do not exist. Nothing is silently skipped.
 
+## 推薦配裝 / Recommended builds
+
+`src/data/recommended.ts` 有 10 套起手範本（輸出／坦克／技能／支援各類）。
+範本以**套裝名稱**而非裝備 id 描述組成，資料更新後仍能正確解析；
+`resolveRecommended()` 負責挑件、配核心與詞條。測試會驗證每一套都能組滿 6 件
+並觸發 4 件套天賦。
+
+`src/data/recommended.ts` holds ten starting-point templates across DPS, tank,
+skill and support. They reference **set names** rather than item ids so they keep
+resolving across data updates; `resolveRecommended()` picks the pieces and fills
+cores and minors. Tests assert every template fills all six slots and activates
+its four-piece talent.
+
+**這些是起手範本，不是最佳解。** 實際強度依版本與玩法而異，套用後請自行調整。
+**They are starting points, not optimal builds** — tune them to your gear and playstyle.
+
+## 中文化 / Chinese localisation
+
+| | 狀態 / Status |
+|---|---|
+| 屬性 / Stats | 61/61 ✅ |
+| 品牌 / Brands | 38/38 ✅ |
+| 套裝 / Gear sets | 27/28（缺 Ember Engine） |
+| 一般裝備 / Generic pieces | 396/396 ✅（由品牌／套裝 + 部位組合而成） |
+| 具名與奇特 / Named & exotic | 0/103 ⬜ 回退英文 |
+| 天賦 / Talents | 0/369 ⬜ 回退英文 |
+
+品牌與套裝譯名是以**加成數值完全吻合**對照社群中文資料庫確認的，不是音譯猜測。
+具名／奇特裝備與天賦名稱目前沒有可靠來源，因此保留英文——顯示英文比放一個
+看起來像官方譯名的錯誤名稱好。要補充請在 `src/i18n/names.ts` 的 `ITEM_ZH` 加行。
+
+Brand and set names were confirmed by matching exact bonus values against a
+community Chinese database, not guessed from transliteration. Named/exotic items
+and talents have no reliable source, so they stay English: a visibly English name
+beats a plausible-looking wrong one. Add entries to `ITEM_ZH` in
+`src/i18n/names.ts` to fill the gaps.
+
 ## 設計決定 / Design decisions
 
 - **預設核心 / Default cores** — 裝上一件裝備時，核心會依該品牌／套裝的
@@ -64,6 +103,9 @@ that do not exist. Nothing is silently skipped.
 - **上限規則寫死 / Caps are hard-coded** — 爆擊機率 60%、技能階 6 屬於遊戲規則
   而非資料，跨版本不變，所以放在 `src/model/calc/constants.ts`。
   Crit chance 60% and skill tier 6 are rules rather than data, so they live in code.
+- **不編造譯名 / No invented translations** — 未確認的名稱一律回退英文，並由測試
+  持續回報覆蓋率，缺口是可見的而非被掩蓋。
+  Unconfirmed names fall back to English and a test reports coverage, so gaps stay visible.
 - **兩段式重繪 / Two render scopes** — 換裝備才重建裝備欄，調數值只重算總覽，
   避免輸入中的欄位被重繪奪走焦點。
   Swapping an item rebuilds the gear column; nudging a value only recomputes the

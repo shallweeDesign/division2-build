@@ -1,5 +1,6 @@
 /** 介面文案 / UI strings, with the language persisted across visits. */
 import { STAT_ZH } from './stats.ts';
+import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
 
 export type Lang = 'zh-tw' | 'en';
 
@@ -18,6 +19,13 @@ const UI = {
   clear: { 'zh-tw': '清空配裝', en: 'Clear build' },
   noStats: { 'zh-tw': '尚未裝備任何部位', en: 'Nothing equipped yet' },
   noCores: { 'zh-tw': '尚未選擇核心屬性', en: 'No cores chosen yet' },
+  recommended: { 'zh-tw': '推薦套裝', en: 'Recommended builds' },
+  recommendedNote: {
+    'zh-tw': '起手範本，不是最佳解。套用後再依你的裝備與玩法調整。',
+    en: 'Starting points, not optimal builds — tune them to your gear and playstyle.',
+  },
+  apply: { 'zh-tw': '套用', en: 'Apply' },
+  hide: { 'zh-tw': '收起', en: 'Hide' },
   pieces: { 'zh-tw': '件', en: 'pc' },
   needMore: { 'zh-tw': '再 {n} 件解鎖 {p} 件加成', en: '{n} more for the {p}-piece bonus' },
   capped: { 'zh-tw': '已達上限', en: 'capped' },
@@ -44,17 +52,30 @@ const UI = {
     defensive: { 'zh-tw': '防禦', en: 'Defensive' },
     skill: { 'zh-tw': '技能', en: 'Skill' },
   },
+  focus: {
+    dps: { 'zh-tw': '輸出', en: 'DPS' },
+    tank: { 'zh-tw': '坦克', en: 'Tank' },
+    skill: { 'zh-tw': '技能', en: 'Skill' },
+    support: { 'zh-tw': '支援', en: 'Support' },
+  },
 } as const;
 
 const KEY = 'd2b.lang';
-let current: Lang = (localStorage.getItem(KEY) as Lang) || 'zh-tw';
+
+/** Storage and the DOM are absent under test, so both accesses are optional. */
+const store: Pick<Storage, 'getItem' | 'setItem'> | null =
+  typeof localStorage === 'undefined' ? null : localStorage;
+
+let current: Lang = (store?.getItem(KEY) as Lang | null) ?? 'zh-tw';
 
 export const lang = () => current;
 
 export function setLang(next: Lang) {
   current = next;
-  localStorage.setItem(KEY, next);
-  document.documentElement.lang = next === 'zh-tw' ? 'zh-Hant' : 'en';
+  store?.setItem(KEY, next);
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = next === 'zh-tw' ? 'zh-Hant' : 'en';
+  }
 }
 
 type Entry = Record<Lang, string>;
@@ -69,6 +90,7 @@ export const t = (key: keyof typeof UI): string => {
 export const tSlot = (slot: keyof typeof UI.slot) => pick(UI.slot[slot]);
 export const tQuality = (q: keyof typeof UI.quality) => pick(UI.quality[q]);
 export const tCategory = (c: keyof typeof UI.category) => pick(UI.category[c]);
+export const tFocus = (f: keyof typeof UI.focus) => pick(UI.focus[f]);
 
 /**
  * 屬性名 / Stat name in the active language, looked up by stat id. English is
@@ -78,5 +100,31 @@ export const tCategory = (c: keyof typeof UI.category) => pick(UI.category[c]);
 export const tStat = (statId: string, fallback: string) =>
   current === 'zh-tw' ? STAT_ZH[statId] ?? fallback : fallback;
 
-/** Item and set names stay in English — that is how the community refers to them. */
-export const tItem = (name: string) => name;
+/** 品牌／套裝名 / Set name in the active language, falling back to English. */
+export const tSet = (name: string) => (current === 'zh-tw' ? SET_ZH[name] ?? name : name);
+
+/**
+ * 裝備名 / Item name in the active language.
+ *
+ * Generic pieces are named `{Set} {Slot}` upstream, so they compose from the
+ * set and slot translations rather than needing 396 individual entries. Named
+ * and exotic items fall back to English until `ITEM_ZH` covers them.
+ */
+export function tItem(name: string, slot: string, setName: string | null) {
+  if (current !== 'zh-tw') return name;
+  const explicit = ITEM_ZH[name];
+  if (explicit) return explicit;
+  if (setName && name === `${setName} ${SLOT_EN[slot] ?? ''}`) {
+    const zhSet = SET_ZH[setName];
+    const zhSlot = SLOT_ZH[slot];
+    // Brands that keep a Latin name need a space before the Chinese slot word.
+    if (zhSet && zhSlot) return /[A-Za-z0-9]$/.test(zhSet) ? `${zhSet} ${zhSlot}` : `${zhSet}${zhSlot}`;
+  }
+  return name;
+}
+
+/** English slot words as they appear inside upstream item names. */
+const SLOT_EN: Record<string, string> = {
+  mask: 'Mask', chest: 'Chest', backpack: 'Backpack',
+  gloves: 'Gloves', holster: 'Holster', knees: 'Kneepads',
+};
