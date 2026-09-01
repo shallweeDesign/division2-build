@@ -9,6 +9,7 @@ import { renderSummaryPanel } from './ui/summary-panel.ts';
 import { renderRecommendedPanel } from './ui/recommended-panel.ts';
 import { renderWatchPanel } from './ui/watch-panel.ts';
 import { renderWeaponPanel } from './ui/weapon-panel.ts';
+import { renderDamagePanel } from './ui/damage-panel.ts';
 import { reset, subscribe } from './ui/store.ts';
 import { el } from './ui/dom.ts';
 
@@ -24,7 +25,12 @@ const weaponCol = el('div', { class: 'gear-col weapon-col' });
 const buildCol = el('div', { class: 'build-col' });
 const watch = el('div', { class: 'watch-col' });
 const summaryCol = el('aside', { class: 'summary-col' });
+// The summary panel clears whatever it renders into, so the damage panel gets
+// its own container rather than sharing one and being wiped on every keystroke.
+const damage = el('div', { class: 'damage-col' });
+const summaryInner = el('div', { class: 'summary-inner' });
 buildCol.append(gearCol, el('h2', { class: 'col-heading' }, [t('weapons')]), weaponCol);
+summaryCol.append(damage, summaryInner);
 layout.append(buildCol, summaryCol);
 app.append(header, banner, watch, layout, recommended);
 
@@ -51,7 +57,8 @@ function renderAll() {
   renderGearPanel(gearCol, data);
   renderWeaponPanel(weaponCol, data);
   renderWatchPanel(watch, data);
-  renderSummaryPanel(summaryCol, data);
+  renderDamagePanel(damage, data);
+  renderSummaryPanel(summaryInner, data);
   renderRecommendedPanel(recommended, data);
 }
 
@@ -60,7 +67,8 @@ subscribe((scope) => {
   // fires on every keystroke inside it, and replacing the input would drop the
   // caret. Its own state is already what the player just typed.
   if (scope === 'gear') { renderGearPanel(gearCol, data); renderWeaponPanel(weaponCol, data); renderWatchPanel(watch, data); }
-  renderSummaryPanel(summaryCol, data);
+  renderDamagePanel(damage, data);
+  renderSummaryPanel(summaryInner, data);
 });
 
 setLang(lang() as Lang);

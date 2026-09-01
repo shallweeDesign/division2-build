@@ -106,6 +106,53 @@ select, input[type="number"] {
 
 .summary-col { display: grid; gap: .75rem; align-content: start; }
 .watch-col { display: block; }
+.summary-inner, .damage-col { display: grid; gap: .75rem; }
+
+// 傷害面板 / Damage: base against build, then the eight cells.
+.damage {
+  .dmg-tabs { display: flex; gap: .25rem; margin-bottom: .6rem; flex-wrap: wrap; }
+
+  .dmg-tab {
+    background: transparent; color: $muted; border: 1px solid $line;
+    border-radius: 3px; padding: .2rem .55rem; font: inherit; font-size: .8rem; cursor: pointer;
+    &:hover { color: $text; border-color: $muted; }
+    &.is-active { color: $accent; border-color: $accent; }
+    &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
+  }
+
+  h3 {
+    margin: .9rem 0 .4rem; font-size: .76rem; letter-spacing: .08em;
+    text-transform: uppercase; color: $muted; font-weight: 500;
+  }
+
+  .dps-row { display: grid; grid-template-columns: 4.6rem 1fr; gap: .5rem; align-items: center; }
+  .dps-row + .dps-row { margin-top: .35rem; }
+  .dps-label { font-size: .76rem; color: $muted; }
+  .dps-figs { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; }
+
+  .dps-fig {
+    background: $panel-2; border-radius: 3px; padding: .3rem .4rem;
+    display: grid; gap: .1rem;
+    strong { font-size: .92rem; color: $text; font-variant-numeric: tabular-nums; }
+    span { font-size: .64rem; color: $muted; }
+  }
+  // The unmodified figures sit back so the build's numbers read first.
+  .is-base .dps-fig strong { color: $muted; font-weight: 400; }
+
+  .dmg-table {
+    width: 100%; border-collapse: collapse; font-size: .84rem;
+    font-variant-numeric: tabular-nums;
+
+    th, td { padding: .28rem .4rem; border-bottom: 1px solid $line; text-align: right; }
+    thead th { color: $muted; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; }
+    tbody th { text-align: left; color: $text; font-weight: 400; }
+    tr.is-head td { color: $accent; }
+    tr:last-child td, tr:last-child th { border-bottom: none; }
+  }
+
+  .caveat { color: $accent; cursor: help; }
+  .caveat-note { font-size: .7rem; line-height: 1.6; margin-top: .6rem; }
+}
 
 // 天賦 / Talents: the wording is the point, so give it room to be read.
 .talent-list {
