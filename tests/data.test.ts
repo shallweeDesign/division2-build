@@ -287,3 +287,55 @@ describe('weapon mods', () => {
     }
   });
 });
+
+describe('specializations', () => {
+  const statIds = new Set(data.stats.map((s) => s.id));
+  const weaponTypes = new Set(data.weapons.map((w) => w.weaponType));
+
+  it('reads all six trees, each with a hub to spend points at', () => {
+    expect(data.specializations).toHaveLength(6);
+    for (const sp of data.specializations) {
+      expect(sp.nodes.length, sp.id).toBeGreaterThan(20);
+      expect(sp.nodes.some((n) => n.type === 'hub'), sp.id).toBe(true);
+      // Six nodes per tree hang off no hub — the signature weapon's ammo, the
+      // grenade, the spec sidearm and the spec skills. They come with the
+      // specialization rather than being bought with points.
+      const rooted = sp.nodes.filter((n) => n.type === 'node' && n.parent !== null);
+      const innate = sp.nodes.filter((n) => n.type === 'node' && n.parent === null);
+      expect(rooted.length, sp.id).toBeGreaterThan(10);
+      expect(innate.length, sp.id).toBe(6);
+      for (const n of rooted) {
+        expect(sp.nodes.some((h) => h.name === n.parent), `${sp.id}/${n.name} → ${n.parent}`).toBe(true);
+      }
+    }
+  });
+
+  it('only reduces a talent to numbers when the wording allows it', () => {
+    const withEffects = data.specTalents.filter((t) => t.effects.length > 0);
+    // The rest are conditionals, group buffs and ammo mechanics: shown, not counted.
+    expect(withEffects.length).toBeGreaterThan(150);
+    expect(withEffects.length).toBeLessThan(data.specTalents.length);
+    for (const t of data.specTalents) {
+      for (const e of t.effects) expect(statIds, `${t.name}/${e.statId}`).toContain(e.statId);
+    }
+  });
+
+  it('keeps a weapon-limited bonus limited', () => {
+    // "+3% headshot damage with Rifles and Marksman Rifles" must not read as a
+    // global headshot bonus — that would overstate every other weapon.
+    const scoped = data.specTalents.filter((t) => t.effects.some((e) => e.weaponTypes.length > 0));
+    expect(scoped.length).toBeGreaterThan(0);
+    for (const t of scoped) {
+      for (const e of t.effects) {
+        for (const wt of e.weaponTypes) expect(weaponTypes, `${t.name}: ${wt}`).toContain(wt);
+      }
+    }
+  });
+
+  it('leaves a conditional talent uncounted rather than guessing at it', () => {
+    const conditional = data.specTalents.find((t) => /while in cover/i.test(t.description));
+    expect(conditional).toBeDefined();
+    expect(conditional!.effects).toEqual([]);
+    expect(conditional!.description).not.toBe('');
+  });
+});

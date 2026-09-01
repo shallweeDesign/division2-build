@@ -11,9 +11,10 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   AttributeDef, AttributeSlotSpec, Augment, BonusEntry, Category, GameData, GearItem,
-  GearSlot, SetDef, SetTier, SkillVariant, Stat, Talent, Value, Weapon, WeaponMod, WeaponModSlot,
+  GearSlot, SetDef, SetTier, SkillVariant, SpecNode, SpecTalent, Specialization, Stat, Talent,
+  Value, Weapon, WeaponMod, WeaponModSlot,
 } from '../src/model/types.ts';
-import { GEAR_SLOTS, WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
+import { GEAR_SLOTS, SPECIALIZATIONS, WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -243,6 +244,92 @@ function gearItems(attrIds: Set<string>, setNames: Set<string>, talentNames: Set
   return gear;
 }
 
+// ── specializations ───────────────────────────────────────────────────────────
+/**
+ * 專精天賦的效果 / Spec talents are prose, so only two shapes are read as
+ * numbers and everything else is left as text.
+ *
+ *   "Increases Stability by 5%"                            → a plain stat
+ *   "Increased headshot damage by 3% with Rifles and ..."   → scoped to weapons
+ *
+ * The stat is matched against stats.csv's own `name` column rather than a
+ * hand-written list, so a renamed stat upstream fails here instead of silently
+ * dropping the effect. Anything that matches neither shape keeps its wording
+ * and contributes nothing — a conditional, a group buff or an ammo mechanic
+ * cannot be reduced to a number without inventing the model for it.
+ */
+const PLAIN = /^(?:Increases?|Adds)\s+(.+?)\s+by\s+([\d.]+)(%?)$/i;
+const SCOPED = /^Increased\s+(.+?)\s+by\s+([\d.]+)%\s+with\s+(.+)$/i;
+
+function specTalents(statsByName: Map<string, string>): SpecTalent[] {
+  const file = 'specializations/specialization_talents.csv';
+  return read(file).map((r, i) => {
+    const name = cell(r, 'name', file);
+    const description = (r['description'] ?? '').trim();
+    const where = `${file} row ${i + 2} (${name})`;
+
+    const lookup = (raw: string) => {
+      const id = statsByName.get(raw.trim().toLowerCase());
+      if (!id) fail(`${where}: no stat named "${raw.trim()}" in stats.csv`);
+      return id ?? '';
+    };
+
+    const plain = PLAIN.exec(description);
+    if (plain) {
+      return { name, description, effects: [{
+        statId: lookup(plain[1]!),
+        value: { n: Number(plain[2]), percent: plain[3] === '%' },
+        weaponTypes: [],
+      }] };
+    }
+
+    const scoped = SCOPED.exec(description);
+    if (scoped) {
+      const types = scoped[3]!.split(/\s*(?:,|and)\s*/).map((t) => t.trim()).filter(Boolean)
+        // "Rifles" names the type "Rifle"; the sheet pluralises.
+        .map((t) => t.replace(/s$/, ''));
+      return { name, description, effects: [{
+        statId: lookup(scoped[1]!),
+        value: { n: Number(scoped[2]), percent: true },
+        weaponTypes: types,
+      }] };
+    }
+
+    return { name, description, effects: [] };
+  });
+}
+
+function specializations(): Specialization[] {
+  return SPECIALIZATIONS.map((id) => {
+    const file = `specializations/${id}.csv`;
+    const nodes: SpecNode[] = read(file).map((r, i) => {
+      const name = cell(r, 'name', file);
+      const where = `${file} row ${i + 2} (${name})`;
+      const type = cell(r, 'type', file);
+      if (type !== 'hub' && type !== 'node') fail(`${where}: unknown type "${type}"`);
+      const num = (col: string) => {
+        const v = r[col] ?? '';
+        if (NA(v)) return null;
+        const n = Number(v);
+        if (!Number.isFinite(n)) { fail(`${where}: ${col} is not a number → "${v}"`); return null; }
+        return n;
+      };
+      return {
+        name,
+        type: type === 'hub' ? 'hub' : 'node',
+        category: NA(r['category'] ?? '') ? null : (r['category'] ?? ''),
+        parent: NA(r['parent'] ?? '') ? null : (r['parent'] ?? ''),
+        budget: num('budget'),
+        maxTier: num('max_tier'),
+        tierCosts: [1, 2, 3, 4, 5].map((n) => num(`tier${n}_cost`)).filter((n): n is number => n !== null),
+      };
+    });
+    // A tree with no hub has nowhere to spend points, which would be a parse slip.
+    if (!nodes.some((n) => n.type === 'hub')) fail(`${file}: no hub row`);
+    return { id, nodes };
+  });
+}
+
 // ── weapon mods ───────────────────────────────────────────────────────────────
 /**
  * `stats` is a `|`-separated list of `stat-id:value`, and a value may be
@@ -395,6 +482,8 @@ function main() {
   const data: GameData = {
     meta, stats, attributes, gearMods, sets, gearTalents, weaponTalents,
     weaponMods: wMods,
+    specializations: specializations(),
+    specTalents: specTalents(new Map(stats.map((s) => [s.name.toLowerCase(), s.id]))),
     gear, weapons: weapons(attrIds, allTalents, new Set(wMods.map((m) => m.name))), skills, augments,
   };
 
@@ -412,6 +501,8 @@ function main() {
   console.log(`✓ ${stats.length} stats, ${attributes.length} attributes, ${gearMods.length} gear mods`);
   console.log(`✓ ${gearTalents.length} gear talents, ${weaponTalents.length} weapon talents`);
   console.log(`✓ ${data.weapons.length} weapons, ${wMods.length} weapon mods, ${skills.length} skill variants, ${augments.length} augments`);
+  const counted = data.specTalents.filter((t) => t.effects.length > 0).length;
+  console.log(`✓ ${data.specializations.length} specializations, ${data.specTalents.length} spec talents (${counted} reduced to stats, ${data.specTalents.length - counted} text only)`);
   for (const n of notes) console.warn(`⚠ 已知缺口 / known gap: ${n}`);
 }
 

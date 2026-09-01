@@ -136,6 +136,53 @@ export interface Weapon {
   mods: WeaponModSlot[];
 }
 
+export const SPECIALIZATIONS = [
+  'demolitionist', 'firewall', 'gunner', 'sharpshooter', 'survivalist', 'technician',
+] as const;
+export type SpecializationId = (typeof SPECIALIZATIONS)[number];
+
+/**
+ * 專精天賦的效果 / A spec talent reduced to numbers, where the wording allowed.
+ *
+ * `weaponTypes` is the reason this is not just a stat and a value: one line
+ * reads "+3% headshot damage with Rifles and Marksman Rifles", and folding
+ * that into a global headshot bonus would overstate every other weapon.
+ */
+export interface SpecEffect {
+  statId: string;
+  value: Value;
+  /** Empty means it always applies; otherwise only for these weapon types. */
+  weaponTypes: string[];
+}
+
+export interface SpecTalent {
+  name: string;
+  description: string;
+  /**
+   * Empty when the wording could not be reduced to numbers — a conditional, a
+   * group buff, an ammo mechanic. Those are shown and not counted, rather than
+   * guessed at.
+   */
+  effects: SpecEffect[];
+}
+
+/** 專精技能樹的一個節點 / One node of a specialization tree. */
+export interface SpecNode {
+  name: string;
+  type: 'hub' | 'node';
+  category: string | null;
+  parent: string | null;
+  /** Hubs carry the point budget; nodes carry tiers and their costs. */
+  budget: number | null;
+  maxTier: number | null;
+  tierCosts: number[];
+}
+
+export interface Specialization {
+  id: SpecializationId;
+  nodes: SpecNode[];
+}
+
 export interface SkillVariant {
   name: string;
   /** Parent skill; `Decoy` is its own parent. */
@@ -170,6 +217,8 @@ export interface GameData {
   gearTalents: Talent[];
   weaponTalents: Talent[];
   weaponMods: WeaponMod[];
+  specializations: Specialization[];
+  specTalents: SpecTalent[];
   gear: Record<GearSlot, GearItem[]>;
   weapons: Weapon[];
   skills: SkillVariant[];
