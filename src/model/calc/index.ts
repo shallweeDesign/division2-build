@@ -6,7 +6,7 @@ import type {
   AttributeDef, AttributeSlotSpec, GameData, GearItem, GearSlot, SetDef, Value,
   Weapon, WeaponMod, WeaponSlot,
 } from '../types.ts';
-import { GEAR_SLOTS } from '../types.ts';
+import { GEAR_SLOTS, WEAPON_SLOTS } from '../types.ts';
 import type { BuildState, SlotChoice, SlotState } from '../build.ts';
 import { WATCH_STAT_IDS } from '../watch.ts';
 import { MAX_PIECES, STAT_CAPS } from './constants.ts';
@@ -305,8 +305,10 @@ export function computeBuild(data: GameData, build: BuildState): BuildSummary {
   const { stats, warnings: capWarnings } = totalled(data, buckets);
   warnings.push(...capWarnings);
 
-  // 5. Talents, from the pieces that carry one and from set bonuses.
-  const talentText = new Map(data.gearTalents.map((t) => [t.name, t.description]));
+  // 5. Talents, from the pieces that carry one, from set bonuses, and from
+  //    whichever weapons are equipped.
+  const talentText = new Map(
+    [...data.gearTalents, ...data.weaponTalents].map((t) => [t.name, t.description]));
   const talents: ActiveTalent[] = [];
   const seen = new Set<string>();
   const addTalent = (name: string | null | undefined, source: string) => {
@@ -321,6 +323,12 @@ export function computeBuild(data: GameData, build: BuildState): BuildSummary {
   }
   for (const entry of sets) {
     for (const name of entry.talents) addTalent(name, entry.set.name);
+  }
+  for (const slot of WEAPON_SLOTS) {
+    const st = build.weapons?.[slot];
+    const w = st?.weaponId ? data.weapons.find((x) => x.id === st.weaponId) : undefined;
+    if (!w) continue;
+    addTalent(w.talent?.mode === 'fixed' ? w.talent.name : st?.talent, w.name);
   }
 
   const empty = GEAR_SLOTS.filter((s) => !items[s]);

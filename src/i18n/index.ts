@@ -29,6 +29,27 @@ const UI = {
   talents: { 'zh-tw': '天賦', en: 'Talents' },
   noTalents: { 'zh-tw': '尚未選擇天賦', en: 'No talents yet' },
   noTalentText: { 'zh-tw': '資料源沒有這個天賦的說明', en: 'No wording for this talent in the dataset' },
+  weapons: { 'zh-tw': '武器', en: 'Weapons' },
+  baseDamage: { 'zh-tw': '基礎傷害', en: 'Base damage' },
+  magazine: { 'zh-tw': '彈匣', en: 'Magazine' },
+  reload: { 'zh-tw': '裝彈', en: 'Reload' },
+  optics: { 'zh-tw': '瞄準鏡', en: 'Optics' },
+  muzzle: { 'zh-tw': '槍口', en: 'Muzzle' },
+  underbarrel: { 'zh-tw': '槍管下方', en: 'Underbarrel' },
+  weaponSlot: {
+    primary:   { 'zh-tw': '主要武器', en: 'Primary' },
+    secondary: { 'zh-tw': '次要武器', en: 'Secondary' },
+    sidearm:   { 'zh-tw': '隨身武器', en: 'Sidearm' },
+  },
+  weaponType: {
+    'Assault Rifle':  { 'zh-tw': '突擊步槍', en: 'Assault Rifle' },
+    'LMG':            { 'zh-tw': '輕機槍',   en: 'LMG' },
+    'Marksman Rifle': { 'zh-tw': '射手步槍', en: 'Marksman Rifle' },
+    'Pistol':         { 'zh-tw': '手槍',     en: 'Pistol' },
+    'Rifle':          { 'zh-tw': '步槍',     en: 'Rifle' },
+    'Shotgun':        { 'zh-tw': '霰彈槍',   en: 'Shotgun' },
+    'SMG':            { 'zh-tw': '衝鋒槍',   en: 'SMG' },
+  },
   watch: { 'zh-tw': 'SHD 手錶', en: 'SHD Watch' },
   watchNote: {
     'zh-tw': '依遊戲內手錶畫面上顯示的加成填寫。留空或 0 表示未投入。',
@@ -102,6 +123,10 @@ export const t = (key: keyof typeof UI): string => {
 };
 
 export const tSlot = (slot: keyof typeof UI.slot) => pick(UI.slot[slot]);
+export const tWeaponSlot = (s: keyof typeof UI.weaponSlot) => pick(UI.weaponSlot[s]);
+/** Weapon types come from the data set, so an unknown one falls back to itself. */
+export const tWeaponType = (name: string) =>
+  (name in UI.weaponType ? pick(UI.weaponType[name as keyof typeof UI.weaponType]) : name);
 export const tQuality = (q: keyof typeof UI.quality) => pick(UI.quality[q]);
 export const tCategory = (c: keyof typeof UI.category) => pick(UI.category[c]);
 export const tFocus = (f: keyof typeof UI.focus) => pick(UI.focus[f]);

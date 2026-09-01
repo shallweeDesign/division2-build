@@ -52,6 +52,20 @@ button.ghost {
 }
 
 .gear-col { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); align-content: start; }
+.build-col { display: grid; gap: 1rem; align-content: start; }
+
+.col-heading {
+  margin: .5rem 0 -.25rem; font-size: .82rem; letter-spacing: .1em;
+  text-transform: uppercase; color: $muted; font-weight: 500;
+}
+
+// 武器基礎數值 / The unmodified numbers, so a swap is comparable at a glance.
+.weapon-base {
+  margin: 0 0 .1rem; font-size: .78rem; color: $muted;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-mod select { font-size: .82rem; }
 
 .slot-card {
   background: $panel; border: 1px solid $line; border-radius: 4px; padding: .75rem;
