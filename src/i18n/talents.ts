@@ -25,8 +25,57 @@
  * owner has download and copy switched off, so nothing was exported from it.
  */
 
+/**
+ * 武器天賦 / Weapon talents. Not shown anywhere yet — the weapons UI is Phase 3 —
+ * but named here while the source was open, on the same terms as the rest.
+ */
+const WEAPON: Record<string, string> = {
+  'Behind You': '後顧之憂',
+  'Boomerang': '迴力鏢',
+  'Brazen': '彈丸風暴',
+  'Breadbasket': '麵包籃',
+  'Close & Personal': '短兵相接',
+  'Eyeless': '失明',
+  'Fast Hands': '快手族',
+  'Finisher': '終結者',
+  'First Blood': '第一滴血',
+  'Frenzy': '瘋狂',
+  'Future Perfect': '未來完成式',
+  'Ignited': '點燃',
+  'Killer': '殺手',
+  'Lucky Shot': '幸運一擊',
+  'Measured': '精密計算',
+  'Naked': '赤身裸體',
+  'Near Sighted': '短視近利',
+  'On Empty': '空無一物',
+  'Optimist': '樂天派',
+  'Outsider': '局外人',
+  'Overflowing': '滿溢',
+  'Overwhelm': '排山倒海',
+  'Perpetuation': '長存',
+  'Precision Strike': '精準突擊',
+  'Preservation': '維護保存',
+  'Pressure Point': '壓力點',
+  'Pummel': '拳拳到肉',
+  'Pumped Up': '充滿幹勁',
+  'Ranger': '遊騎兵',
+  'Reformation': '改革',
+  'Sadist': '虐待狂',
+  'Salvage': '拾荒',
+  'Soft Spot': '痛擊軟肋',
+  'Spike': '刺擊',
+  'Stabilize': '穩定射擊',
+  'Steady Handed': '雙手沉穩',
+  'Strained': '壓力使然',
+  'Streamline': '精簡增傷',
+  'Thunder Strike': '雷擊',
+  'Unhinged': '精神錯亂',
+  'Unwavering': '屹立不搖',
+  'Vindictive': '報復之心',
+};
+
 /** 一般天賦 / Base talents, each confirmed against its values in `data/`. */
-export const TALENT_ZH: Record<string, string> = {
+const GEAR: Record<string, string> = {
   // 攻擊 / Offensive
   Obliterate: '抹滅性破壞',
   Opportunistic: '投機取巧',
@@ -85,6 +134,8 @@ export const TALENT_ZH: Record<string, string> = {
  * variants of ordinary talents — the same talent with the source's parenthesised
  * values. The Chinese name is derived rather than listed twice.
  */
+export const TALENT_ZH: Record<string, string> = { ...GEAR, ...WEAPON };
+
 export function talentZh(name: string): string | undefined {
   const direct = TALENT_ZH[name];
   if (direct) return direct;
