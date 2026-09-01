@@ -46,7 +46,21 @@ npm run data     # CSV → src/data/generated/game-data.json（含驗證 / valid
 npm test         # 資料結構不變量 + 計算引擎規則 / invariants + engine rules
 npm run dev      # 開發伺服器 / dev server
 npm run build    # data + typecheck + vite build
+npm run deploy   # 建置並同步到 Pages 站台 / build and sync into the Pages site
 ```
+
+`npm run deploy` 會**先清空**目標資料夾再複製。Vite 的資源檔名帶內容雜湊，
+直接覆蓋會把上一版的 bundle 永久留在站上——沒人引用卻仍被送出。
+腳本停在同步完成，commit 與 push 的指令會印出來讓你自己執行。
+外接碟沒掛載、或建置用錯 `base` 路徑時，腳本會中止並說明原因。
+
+`npm run deploy` wipes the target before copying: Vite's hashed filenames mean
+copying over the top strands every previous bundle in the deployed site. It
+stops after syncing and prints the commit/push commands rather than running
+them. It aborts if the drive is not mounted, or if the build was made for the
+wrong base path.
+
+上線位置 / Live at: <https://shallweedesign.github.io/lab/division2_builder/>
 
 `npm run data` **直接失敗**的情況：未登記的空白儲存格、已過期的 known gap、
 無法解析的槽位語法、指向不存在屬性／stat／天賦／套裝的參照。

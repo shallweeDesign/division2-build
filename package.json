@@ -9,7 +9,8 @@
     "dev": "npm run data && vite",
     "build": "npm run data && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "bash scripts/deploy.sh"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
