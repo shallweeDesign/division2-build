@@ -21,6 +21,10 @@
  *   - docs.google.com/spreadsheets/d/16pZt0X6jTcZiss1SDP807H-QbbTgKsVYwKfj7udsuGQ
  *     (credits ゼロ s155350, 老楊 saps87116)
  *   - 全境封鎖 2 中文百科, 能能糯米 編著/翻譯 — youtube.com/能能糯米RunRunRomeo
+ *
+ * The two cover the same 49 talents, so the second adds no names — but its
+ * fuller wording identified two the first left ambiguous, and where the two
+ * agree on a name that name is corroborated rather than taken on trust.
  */
 
 /** 機制與名稱都吻合 / Chinese effect still describes the talent in `data/`. */
@@ -37,6 +41,10 @@ const CONFIRMED_BY_MECHANIC: Record<string, string> = {
   'Tech Support': '技術支援',
   Trauma: '創傷',
   'Creeping Death': '死亡蔓延',
+  // Distinctive enough not to collide: a kill loading random special ammo into
+  // the sidearm is described by exactly one talent.
+  Reassigned: '重新補給',
+  Clutch: '猛抓者',
 };
 
 /**
