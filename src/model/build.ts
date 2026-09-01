@@ -1,6 +1,6 @@
 /** 配裝狀態 / The build a player is assembling. */
-import type { GearSlot, Value } from './types.ts';
-import { GEAR_SLOTS } from './types.ts';
+import type { GearSlot, Value, WeaponSlot } from './types.ts';
+import { GEAR_SLOTS, WEAPON_SLOTS } from './types.ts';
 import { WATCH_STAT_IDS } from './watch.ts';
 
 /** 一個屬性槽的選擇 / A player's choice in one attribute slot. */
@@ -19,8 +19,33 @@ export interface SlotState {
   talent: string | null;
 }
 
+/**
+ * 一個武器槽 / One of the three weapons.
+ *
+ * `mods` is positional: index n answers the weapon's own `mods[n]` slot, so a
+ * weapon with no optics has no index for one. `null` is an empty slot, and a
+ * slot the weapon fixes is not stored here at all — it cannot be changed.
+ */
+export interface WeaponSlotState {
+  weaponId: string | null;
+  cores: SlotChoice[];
+  minors: SlotChoice[];
+  mods: (string | null)[];
+  talent: string | null;
+}
+
+export const emptyWeapon = (): WeaponSlotState =>
+  ({ weaponId: null, cores: [], minors: [], mods: [], talent: null });
+
 export interface BuildState {
   gear: Record<GearSlot, SlotState>;
+  /**
+   * 武器 / The three weapons. Kept apart from `gear` because their attributes
+   * are not interchangeable: gear applies whatever you are holding, while a
+   * weapon's own cores, attributes and parts only count while that weapon is
+   * the one firing. Pooling them would count all three at once.
+   */
+  weapons: Record<WeaponSlot, WeaponSlotState>;
   /**
    * SHD 手錶加成 / Watch bonuses the player reads off the watch screen, keyed by
    * stat id and held as percentages. Always carries all sixteen keys so the
@@ -36,5 +61,6 @@ export const emptySlot = (): SlotState => ({ itemId: null, cores: [], minors: []
 
 export const emptyBuild = (): BuildState => ({
   gear: Object.fromEntries(GEAR_SLOTS.map((s) => [s, emptySlot()])) as Record<GearSlot, SlotState>,
+  weapons: Object.fromEntries(WEAPON_SLOTS.map((s) => [s, emptyWeapon()])) as Record<WeaponSlot, WeaponSlotState>,
   watch: emptyWatch(),
 });

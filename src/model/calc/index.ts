@@ -4,6 +4,7 @@
  */
 import type {
   AttributeDef, AttributeSlotSpec, GameData, GearItem, GearSlot, SetDef, Value,
+  Weapon, WeaponMod, WeaponSlot,
 } from '../types.ts';
 import { GEAR_SLOTS } from '../types.ts';
 import type { BuildState, SlotChoice, SlotState } from '../build.ts';
@@ -164,7 +165,92 @@ function add(map: Map<string, Bucket>, statId: string, source: string, value: Va
   map.set(statId, b);
 }
 
-export function computeBuild(data: GameData, build: BuildState): BuildSummary {
+/**
+ * 武器可用的配件 / Parts that fit one slot of one weapon.
+ *
+ * A row with no compatibility fits nothing offered in a dropdown: those parts
+ * exist only because some weapon names them outright.
+ */
+export function eligibleMods(data: GameData, slot: { category: string; slug: string }): WeaponMod[] {
+  return data.weaponMods.filter((m) => m.category === slot.category && m.compatibility.includes(slot.slug));
+}
+
+export interface WeaponTotals {
+  weapon: Weapon;
+  /** Gear, sets and watch, plus everything on this weapon. */
+  stats: StatTotal[];
+  talent: ActiveTalent | null;
+  mods: WeaponMod[];
+}
+
+/**
+ * 單把武器的總屬性 / One weapon's totals: the shared pool plus its own parts.
+ *
+ * Gear applies to whatever is in your hands, but a weapon's cores, attributes
+ * and parts only count while that weapon is firing — so they are layered per
+ * weapon here rather than added to the shared buckets, which would count all
+ * three weapons at once.
+ */
+export function computeWeapon(data: GameData, build: BuildState, slot: WeaponSlot): WeaponTotals | null {
+  const state = build.weapons[slot];
+  const weapon = state.weaponId ? data.weapons.find((w) => w.id === state.weaponId) ?? null : null;
+  if (!weapon) return null;
+
+  const attrs = attributeIndex(data);
+  const buckets = sharedBuckets(data, build);
+
+  for (const c of [...state.cores, ...state.minors]) {
+    if (!c.attributeId) continue;
+    const def = attrs.get(c.attributeId);
+    if (def) add(buckets, def.statId, weapon.name, c.value);
+  }
+
+  const mods: WeaponMod[] = [];
+  const byName = new Map(data.weaponMods.map((m) => [m.name, m]));
+  weapon.mods.forEach((spec, i) => {
+    const name = spec.mode === 'fixed' ? spec.name : state.mods[i] ?? null;
+    const mod = name ? byName.get(name) : undefined;
+    if (!mod) return;
+    mods.push(mod);
+    for (const st of mod.stats) add(buckets, st.statId, mod.name, st.value);
+  });
+
+  const talentName = weapon.talent?.mode === 'fixed' ? weapon.talent.name : state.talent;
+  const text = new Map(data.weaponTalents.map((t) => [t.name, t.description]));
+  const talent = talentName
+    ? { name: talentName, description: text.get(talentName) ?? '', source: weapon.name }
+    : null;
+
+  return { weapon, stats: totalled(data, buckets).stats, talent, mods };
+}
+
+/**
+ * 共用加成 / Everything that applies no matter what you are holding: gear,
+ * set bonuses and the SHD watch. A weapon's own parts are layered on top of a
+ * copy of this, per weapon, in `computeWeapon`.
+ */
+function sharedBuckets(data: GameData, build: BuildState): Map<string, Bucket> {
+  const { buckets } = gearBuckets(data, build);
+  return buckets;
+}
+
+/** 套用上限 / Apply the caps and sort, shared by both callers. */
+function totalled(data: GameData, buckets: Map<string, Bucket>) {
+  const stats: StatTotal[] = [...buckets]
+    .map(([statId, b]) => {
+      const cap = STAT_CAPS[statId];
+      const value = cap === undefined ? b.raw : Math.min(b.raw, cap);
+      return { statId, raw: b.raw, value, capped: value !== b.raw, percent: b.percent, contributions: b.contributions };
+    })
+    .sort((a, b) => a.statId.localeCompare(b.statId));
+
+  const statName = new Map(data.stats.map((s) => [s.id, s.name]));
+  const warnings = stats.filter((s) => s.capped).map((s) =>
+    `${statName.get(s.statId) ?? s.statId}：${s.raw} 超過上限 ${s.value} / capped at ${s.value}, ${round(s.raw - s.value)} wasted`);
+  return { stats, warnings };
+}
+
+function gearBuckets(data: GameData, build: BuildState) {
   const items = resolveItems(data, build);
   const attrs = attributeIndex(data);
   const buckets = new Map<string, Bucket>();
@@ -211,21 +297,13 @@ export function computeBuild(data: GameData, build: BuildState): BuildSummary {
     add(buckets, statId, WATCH_SOURCE, { n, percent: true });
   }
 
-  // 4. Total and cap.
-  const stats: StatTotal[] = [...buckets]
-    .map(([statId, b]) => {
-      const cap = STAT_CAPS[statId];
-      const value = cap === undefined ? b.raw : Math.min(b.raw, cap);
-      return { statId, raw: b.raw, value, capped: value !== b.raw, percent: b.percent, contributions: b.contributions };
-    })
-    .sort((a, b) => a.statId.localeCompare(b.statId));
+  return { items, sets, buckets, coreCounts, warnings };
+}
 
-  const statName = new Map(data.stats.map((s) => [s.id, s.name]));
-  for (const s of stats) {
-    if (s.capped) {
-      warnings.push(`${statName.get(s.statId) ?? s.statId}：${s.raw} 超過上限 ${s.value} / capped at ${s.value}, ${round(s.raw - s.value)} wasted`);
-    }
-  }
+export function computeBuild(data: GameData, build: BuildState): BuildSummary {
+  const { items, sets, buckets, coreCounts, warnings } = gearBuckets(data, build);
+  const { stats, warnings: capWarnings } = totalled(data, buckets);
+  warnings.push(...capWarnings);
 
   // 5. Talents, from the pieces that carry one and from set bonuses.
   const talentText = new Map(data.gearTalents.map((t) => [t.name, t.description]));

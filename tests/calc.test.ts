@@ -5,7 +5,7 @@ import type { GameData, GearItem, GearSlot } from '../src/model/types.ts';
 import { GEAR_SLOTS } from '../src/model/types.ts';
 import { emptyBuild } from '../src/model/build.ts';
 import type { BuildState } from '../src/model/build.ts';
-import { activeSets, attributeIndex, computeBuild, defaultChoice, defaultChoicesFor, eligible } from '../src/model/calc/index.ts';
+import { activeSets, attributeIndex, computeBuild, computeWeapon, defaultChoice, defaultChoicesFor, eligible, eligibleMods } from '../src/model/calc/index.ts';
 import { SKILL_TIER_CAP, STAT_CAPS } from '../src/model/calc/constants.ts';
 import { WATCH_STAT_IDS, WATCH_STATS } from '../src/model/watch.ts';
 import { resolveRecommended } from '../src/model/calc/recommend.ts';
@@ -380,5 +380,93 @@ describe('talents', () => {
 
     const names = computeBuild(data, b).talents.map((t) => t.name);
     expect(names.filter((n) => n === talent.name)).toHaveLength(1);
+  });
+});
+
+describe('weapons', () => {
+  /** An assault rifle with fixed cores and at least one choice mod slot. */
+  const rifle = data.weapons.find((w) =>
+    w.weaponType === 'Assault Rifle' && w.cores.length > 0 && w.mods.some((m) => m.mode === 'choice'))!;
+
+  function equipRifle(b: BuildState) {
+    b.weapons.primary.weaponId = rifle.id;
+    b.weapons.primary.cores = rifle.cores.map((c) =>
+      c.mode === 'fixed'
+        ? { attributeId: c.attributeId, value: attrs.get(c.attributeId)?.max ?? null }
+        : { attributeId: null, value: null });
+    b.weapons.primary.mods = rifle.mods.map(() => null);
+    return rifle;
+  }
+
+  it('reports nothing for an empty weapon slot', () => {
+    expect(computeWeapon(data, emptyBuild(), 'primary')).toBeNull();
+  });
+
+  it('adds the weapon\'s own cores on top of the shared pool', () => {
+    const b = emptyBuild();
+    b.watch['weapon-damage'] = 5;
+    equipRifle(b);
+
+    const shared = computeBuild(data, b).stats;
+    const mine = computeWeapon(data, b, 'primary')!.stats;
+
+    // The watch is in both: it applies whatever you are holding.
+    expect(shared.find((s) => s.statId === 'weapon-damage')?.value).toBe(5);
+    expect(mine.find((s) => s.statId === 'weapon-damage')?.value).toBe(5);
+    // The rifle's own core is only in its own totals.
+    const coreStat = attrs.get((rifle.cores[0] as { attributeId: string }).attributeId)!.statId;
+    expect(shared.find((s) => s.statId === coreStat)).toBeUndefined();
+    expect(mine.find((s) => s.statId === coreStat)?.value).toBeGreaterThan(0);
+  });
+
+  it('keeps one weapon\'s attributes out of another\'s totals', () => {
+    // The whole reason weapons are not pooled: three equipped weapons must not
+    // stack their cores into one set of numbers.
+    const b = emptyBuild();
+    equipRifle(b);
+    const second = data.weapons.find((w) => w.slotType === 'main' && w.id !== rifle.id && w.cores.length > 0)!;
+    b.weapons.secondary.weaponId = second.id;
+    b.weapons.secondary.cores = second.cores.map((c) =>
+      c.mode === 'fixed' ? { attributeId: c.attributeId, value: attrs.get(c.attributeId)?.max ?? null } : { attributeId: null, value: null });
+
+    const primaryCore = attrs.get((rifle.cores[0] as { attributeId: string }).attributeId)!.statId;
+    const secondTotals = computeWeapon(data, b, 'secondary')!.stats;
+    const shared = computeBuild(data, b).stats;
+
+    expect(shared.find((s) => s.statId === primaryCore)).toBeUndefined();
+    const inSecond = secondTotals.find((s) => s.statId === primaryCore);
+    const inPrimary = computeWeapon(data, b, 'primary')!.stats.find((s) => s.statId === primaryCore)!;
+    // Present on the rifle, absent from the other weapon unless it shares the core.
+    expect(inPrimary.value).toBeGreaterThan(0);
+    if (!second.cores.some((c) => c.mode === 'fixed' && attrs.get(c.attributeId)?.statId === primaryCore)) {
+      expect(inSecond).toBeUndefined();
+    }
+  });
+
+  it('applies a chosen mod, sign included', () => {
+    const b = emptyBuild();
+    equipRifle(b);
+    const slotIndex = rifle.mods.findIndex((m) => m.mode === 'choice');
+    const slot = rifle.mods[slotIndex] as { category: string; slug: string };
+    const withNegative = eligibleMods(data, slot).find((m) => m.stats.some((st) => st.value.n < 0));
+    if (!withNegative) return;                      // this slot has no trade-off part
+
+    b.weapons.primary.mods[slotIndex] = withNegative.name;
+    const stats = computeWeapon(data, b, 'primary')!.stats;
+    for (const st of withNegative.stats) {
+      const total = stats.find((x) => x.statId === st.statId);
+      expect(total?.contributions.some((c) => c.source === withNegative.name && c.value === st.value.n)).toBe(true);
+    }
+  });
+
+  it('uses a fixed mod without being asked', () => {
+    const exotic = data.weapons.find((w) => w.mods.some((m) => m.mode === 'fixed'));
+    if (!exotic) return;
+    const b = emptyBuild();
+    b.weapons.primary.weaponId = exotic.id;
+    b.weapons.primary.mods = exotic.mods.map(() => null);
+    const fixedNames = exotic.mods.filter((m) => m.mode === 'fixed').map((m) => (m as { name: string }).name);
+    const applied = computeWeapon(data, b, 'primary')!.mods.map((m) => m.name);
+    for (const n of fixedNames) expect(applied).toContain(n);
   });
 });
