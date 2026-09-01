@@ -10,6 +10,7 @@ import { SKILL_TIER_CAP, STAT_CAPS } from '../src/model/calc/constants.ts';
 import { WATCH_STAT_IDS, WATCH_STATS } from '../src/model/watch.ts';
 import { resolveRecommended } from '../src/model/calc/recommend.ts';
 import { RECOMMENDED } from '../src/data/recommended.ts';
+import { HEADSHOT_CRIT, typeDamageStat, weaponDamage } from '../src/model/calc/damage.ts';
 
 const data: GameData = JSON.parse(readFileSync(new URL('../src/data/generated/game-data.json', import.meta.url), 'utf8'));
 const attrs = attributeIndex(data);
@@ -468,5 +469,103 @@ describe('weapons', () => {
     const fixedNames = exotic.mods.filter((m) => m.mode === 'fixed').map((m) => (m as { name: string }).name);
     const applied = computeWeapon(data, b, 'primary')!.mods.map((m) => m.name);
     for (const n of fixedNames) expect(applied).toContain(n);
+  });
+});
+
+describe('damage', () => {
+  const rifle = data.weapons.find((w) =>
+    w.weaponType === 'Assault Rifle' && w.baseDamage !== null && w.rpm !== null)!;
+
+  const of = (b: BuildState) => {
+    const totals = computeWeapon(data, b, 'primary')!;
+    return weaponDamage(data, totals.weapon, totals.stats)!;
+  };
+
+  function bare() {
+    const b = emptyBuild();
+    b.weapons.primary.weaponId = rifle.id;
+    b.weapons.primary.cores = rifle.cores.map(() => ({ attributeId: null, value: null }));
+    b.weapons.primary.minors = rifle.minors.map(() => ({ attributeId: null, value: null }));
+    b.weapons.primary.mods = rifle.mods.map(() => null);
+    return b;
+  }
+
+  it('maps a weapon type to its damage stat', () => {
+    expect(typeDamageStat('Assault Rifle')).toBe('assault-rifle-damage');
+    expect(typeDamageStat('SMG')).toBe('smg-damage');
+    const ids = new Set(data.stats.map((s) => s.id));
+    for (const wt of new Set(data.weapons.map((w) => w.weaponType))) {
+      expect(ids, wt).toContain(typeDamageStat(wt));
+    }
+  });
+
+  it('leaves an unmodified weapon at its base damage', () => {
+    const d = of(bare());
+    expect(d.base.numbers.bodyNonCrit.health).toBeCloseTo(rifle.baseDamage!, 5);
+    expect(d.withBuild.numbers.bodyNonCrit.health).toBeCloseTo(rifle.baseDamage!, 5);
+  });
+
+  it('adds weapon damage and this weapon\'s type damage into one pool', () => {
+    const b = bare();
+    b.watch['weapon-damage'] = 10;
+    const d = of(b);
+    expect(d.withBuild.numbers.bodyNonCrit.health).toBeCloseTo(rifle.baseDamage! * 1.1, 3);
+    expect(d.parts.weaponPool).toBeCloseTo(0.1, 5);
+  });
+
+  it('ignores damage for a weapon type you are not holding', () => {
+    // SMG damage on gear does nothing while an assault rifle is equipped.
+    const b = bare();
+    const smgAttr = data.attributes.find((a) => a.statId === 'smg-damage');
+    if (!smgAttr) return;
+    const withSmg = bare();
+    withSmg.weapons.primary.minors = [{ attributeId: smgAttr.id, value: smgAttr.max }];
+    expect(of(withSmg).parts.weaponPool).toBeCloseTo(of(b).parts.weaponPool, 5);
+  });
+
+  it('caps crit chance at 60% when weighting the average shot', () => {
+    const b = bare();
+    b.watch['critical-hit-chance'] = 90;
+    b.watch['critical-hit-damage'] = 100;
+    const d = of(b);
+    expect(d.parts.crit.chance).toBeCloseTo(0.6, 5);
+    // average = base × (1 + 0.6 × 1.0)
+    expect(d.withBuild.dps.averageShot).toBeCloseTo(rifle.baseDamage! * 1.6, 3);
+  });
+
+  it('reports armor and health as alternatives, not a product', () => {
+    // Give each phase a different bonus and check neither leaks into the other:
+    // a build that multiplied them would show both columns raised by both.
+    const b = bare();
+    const dta = data.attributes.find((a) => a.statId === 'damage-to-armor'
+      && a.compatibility.includes('weapon-minor'))!;
+    b.weapons.primary.minors = [{ attributeId: dta.id, value: { n: 20, percent: true } }];
+    const d = of(b);
+    const cell = d.withBuild.numbers.bodyNonCrit;
+
+    expect(d.parts.toArmor).toBeCloseTo(0.2, 5);
+    expect(d.parts.toHealth).toBeCloseTo(0, 5);
+    expect(cell.armor).toBeCloseTo(cell.health * 1.2, 3);
+  });
+
+  it('combines a headshot crit by the documented convention', () => {
+    const b = bare();
+    b.watch['critical-hit-damage'] = 60;
+    const d = of(b);
+    const n = d.withBuild.numbers;
+    const hsd = (rifle.headshotDamage?.n ?? 0) / 100;
+    const expected = HEADSHOT_CRIT === 'additive' ? 1 + 0.6 + hsd : 1.6 * (1 + hsd);
+    expect(n.headshotCrit.health / n.bodyNonCrit.health).toBeCloseTo(expected, 5);
+  });
+
+  it('says out loud that total weapon damage is not in the numbers', () => {
+    // No stat carries TWD, so a reader must not take these as final.
+    expect(of(bare()).twdApplied).toBe(false);
+  });
+
+  it('drops DPS when a reload is counted in', () => {
+    const d = of(bare());
+    expect(d.withBuild.dps.burst).toBeGreaterThan(d.withBuild.dps.sustained);
+    expect(d.withBuild.dps.damagePerMag).toBeCloseTo(d.withBuild.dps.averageShot * rifle.magSize!, 3);
   });
 });
