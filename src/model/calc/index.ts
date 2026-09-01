@@ -40,12 +40,28 @@ export interface ActiveSet {
   talents: string[];
 }
 
+/**
+ * 生效中的天賦 / A talent in play, with the text that says what it does.
+ *
+ * Talents reach a build two ways — rolled on a chest or backpack, or handed
+ * over by a gear set's four-piece bonus — and the player needs the wording
+ * either way, so both are resolved to the same shape here.
+ */
+export interface ActiveTalent {
+  name: string;
+  /** Empty when the dataset has no wording for it. */
+  description: string;
+  /** The piece or set it came from, for display. */
+  source: string;
+}
+
 export interface BuildSummary {
   items: Partial<Record<GearSlot, GearItem>>;
   sets: ActiveSet[];
   stats: StatTotal[];
   /** Cores in play, keyed by stat id (weapon-damage / total-armor / skill-tier). */
   coreCounts: Record<string, number>;
+  talents: ActiveTalent[];
   warnings: string[];
 }
 
@@ -211,10 +227,28 @@ export function computeBuild(data: GameData, build: BuildState): BuildSummary {
     }
   }
 
+  // 5. Talents, from the pieces that carry one and from set bonuses.
+  const talentText = new Map(data.gearTalents.map((t) => [t.name, t.description]));
+  const talents: ActiveTalent[] = [];
+  const seen = new Set<string>();
+  const addTalent = (name: string | null | undefined, source: string) => {
+    if (!name || seen.has(name)) return;
+    seen.add(name);
+    talents.push({ name, description: talentText.get(name) ?? '', source });
+  };
+  for (const slot of GEAR_SLOTS) {
+    const item = items[slot];
+    if (!item?.talent) continue;
+    addTalent(item.talent.mode === 'fixed' ? item.talent.name : build.gear[slot].talent, item.name);
+  }
+  for (const entry of sets) {
+    for (const name of entry.talents) addTalent(name, entry.set.name);
+  }
+
   const empty = GEAR_SLOTS.filter((s) => !items[s]);
   if (empty.length) warnings.push(`尚有 ${empty.length} 個空部位 / ${empty.length} empty slot(s)`);
 
-  return { items, sets, stats, coreCounts, warnings };
+  return { items, sets, stats, coreCounts, talents, warnings };
 }
 
 const round = (n: number) => Math.round(n * 10) / 10;

@@ -13,7 +13,7 @@ const fmt = (n: number, percent: boolean) => {
 };
 
 export function renderSummaryPanel(root: HTMLElement, data: GameData) {
-  const { stats, sets, warnings, coreCounts } = computeBuild(data, build());
+  const { stats, sets, warnings, coreCounts, talents } = computeBuild(data, build());
   const statName = new Map(data.stats.map((s) => [s.id, s.name]));
   const name = (id: string) => tStat(id, statName.get(id) ?? id);
 
@@ -57,6 +57,26 @@ export function renderSummaryPanel(root: HTMLElement, data: GameData) {
                 : null,
             ])))
         : el('p', { class: 'muted' }, [t('noStats')]),
+    ]),
+  );
+
+  // Talents. The wording is what the player is actually choosing between, so
+  // it is shown in full rather than hidden behind a tooltip.
+  root.append(
+    el('section', { class: 'panel' }, [
+      el('h2', {}, [t('talents')]),
+      talents.length
+        ? el('ul', { class: 'talent-list' }, talents.map((tl) =>
+            el('li', {}, [
+              el('div', { class: 'talent-head' }, [
+                el('strong', {}, [tl.name]),
+                el('span', { class: 'talent-source' }, [tSet(tl.source)]),
+              ]),
+              tl.description
+                ? el('p', { class: 'talent-desc' }, [tl.description])
+                : el('p', { class: 'talent-desc muted' }, [t('noTalentText')]),
+            ])))
+        : el('p', { class: 'muted' }, [t('noTalents')]),
     ]),
   );
 

@@ -93,6 +93,17 @@ select, input[type="number"] {
 .summary-col { display: grid; gap: .75rem; align-content: start; }
 .watch-col { display: block; }
 
+// 天賦 / Talents: the wording is the point, so give it room to be read.
+.talent-list {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem;
+
+  li { border-left: 2px solid $accent; padding-left: .6rem; }
+
+  .talent-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+  .talent-source { color: $muted; font-size: .78rem; text-align: right; }
+  .talent-desc { margin: .2rem 0 0; font-size: .84rem; line-height: 1.5; color: $text; }
+  .talent-desc.muted { color: $muted; font-style: italic; }
+}
 
 // SHD 手錶 / Watch entry: sixteen small numbers, so the grid is dense and the
 // inputs are sized to the two or three digits they actually hold.

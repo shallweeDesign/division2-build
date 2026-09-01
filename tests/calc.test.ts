@@ -326,3 +326,59 @@ describe('SHD watch', () => {
   });
 });
 
+describe('talents', () => {
+  it('reports nothing on an empty build', () => {
+    expect(computeBuild(data, emptyBuild()).talents).toEqual([]);
+  });
+
+  it('picks up a talent chosen on a piece, with its wording', () => {
+    const b = emptyBuild();
+    const item = data.gear.chest.find((i) => i.talent?.mode === 'choice')!;
+    const slug = (item.talent as { mode: 'choice'; slug: string }).slug;
+    const talent = data.gearTalents.find((t) => t.compatibility.includes(slug))!;
+
+    b.gear.chest = { itemId: item.id, ...defaultChoicesFor(item, data, attrs) };
+    b.gear.chest.talent = talent.name;
+
+    const found = computeBuild(data, b).talents.find((t) => t.name === talent.name);
+    expect(found).toBeDefined();
+    expect(found?.description).toBe(talent.description);
+    expect(found?.source).toBe(item.name);
+  });
+
+  it('picks up a talent granted by a gear set bonus', () => {
+    const set = data.sets.find((s) =>
+      s.kind === 'gearset' && s.tiers.some((t) => t.entries.some((e) => e.kind === 'talent')));
+    if (!set) return;                       // dataset without a talent-granting set
+    const granted = set.tiers.flatMap((t) => t.entries)
+      .find((e): e is { kind: 'talent'; name: string } => e.kind === 'talent')!;
+    const tier = set.tiers.find((t) => t.entries.some((e) => e === granted))!;
+
+    const b = emptyBuild();
+    let placed = 0;
+    for (const slot of GEAR_SLOTS) {
+      if (placed >= tier.pieces) break;
+      const item = data.gear[slot].find((i) => i.gearSet === set.name);
+      if (!item) continue;
+      b.gear[slot] = { itemId: item.id, ...defaultChoicesFor(item, data, attrs) };
+      placed += 1;
+    }
+    if (placed < tier.pieces) return;       // set not spread across enough slots
+
+    const found = computeBuild(data, b).talents.find((t) => t.name === granted.name);
+    expect(found).toBeDefined();
+    expect(found?.source).toBe(set.name);
+  });
+
+  it('lists a talent once even if two sources grant it', () => {
+    const b = emptyBuild();
+    const item = data.gear.chest.find((i) => i.talent?.mode === 'choice')!;
+    const slug = (item.talent as { mode: 'choice'; slug: string }).slug;
+    const talent = data.gearTalents.find((t) => t.compatibility.includes(slug))!;
+    b.gear.chest = { itemId: item.id, ...defaultChoicesFor(item, data, attrs) };
+    b.gear.chest.talent = talent.name;
+
+    const names = computeBuild(data, b).talents.map((t) => t.name);
+    expect(names.filter((n) => n === talent.name)).toHaveLength(1);
+  });
+});

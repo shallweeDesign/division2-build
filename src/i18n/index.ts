@@ -25,6 +25,9 @@ const UI = {
     en: 'Starting points, not optimal builds — tune them to your gear and playstyle.',
   },
   apply: { 'zh-tw': '套用', en: 'Apply' },
+  talents: { 'zh-tw': '天賦', en: 'Talents' },
+  noTalents: { 'zh-tw': '尚未選擇天賦', en: 'No talents yet' },
+  noTalentText: { 'zh-tw': '資料源沒有這個天賦的說明', en: 'No wording for this talent in the dataset' },
   watch: { 'zh-tw': 'SHD 手錶', en: 'SHD Watch' },
   watchNote: {
     'zh-tw': '依遊戲內手錶畫面上顯示的加成填寫。留空或 0 表示未投入。',
