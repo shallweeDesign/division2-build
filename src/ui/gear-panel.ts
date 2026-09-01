@@ -3,7 +3,7 @@ import type { AttributeDef, AttributeSlotSpec, GameData, GearItem, GearSlot, Val
 import { GEAR_SLOTS } from '../model/types.ts';
 import type { SlotChoice } from '../model/build.ts';
 import { attributeIndex, defaultChoice, defaultChoicesFor, eligible } from '../model/calc/index.ts';
-import { t, tCategory, tItem, tQuality, tSet, tSlot, tStat } from '../i18n/index.ts';
+import { t, tCategory, tItem, tQuality, tSet, tSlot, tStat, tTalent } from '../i18n/index.ts';
 import { build, update } from './store.ts';
 import { clear, el, select } from './dom.ts';
 
@@ -95,7 +95,7 @@ function talentRow(data: GameData, slot: GearSlot, item: GearItem) {
   if (item.talent.mode === 'fixed') {
     return el('div', { class: 'row row-talent' }, [
       el('span', { class: 'row-label' }, [t('talent')]),
-      el('span', { class: 'fixed-stat' }, [item.talent.name]),
+      el('span', { class: 'fixed-stat' }, [tTalent(item.talent.name)]),
     ]);
   }
   const slug = item.talent.slug;
@@ -104,7 +104,7 @@ function talentRow(data: GameData, slot: GearSlot, item: GearItem) {
   const state = build().gear[slot];
   return el('div', { class: 'row row-talent' }, [
     el('span', { class: 'row-label' }, [t('talent')]),
-    select(state.talent, pool.map((tl) => [tl.name, tl.name] as [string, string]),
+    select(state.talent, pool.map((tl) => [tl.name, tTalent(tl.name)] as [string, string]),
       (v) => update('summary', (b) => { b.gear[slot].talent = v || null; }), '—'),
   ]);
 }

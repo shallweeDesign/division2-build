@@ -2,7 +2,7 @@
 import type { GameData } from '../model/types.ts';
 import { computeBuild } from '../model/calc/index.ts';
 import { MAX_PIECES } from '../model/calc/constants.ts';
-import { t, tSet, tStat } from '../i18n/index.ts';
+import { t, tSet, tStat, tTalent } from '../i18n/index.ts';
 import { build } from './store.ts';
 import { clear, el } from './dom.ts';
 
@@ -48,7 +48,7 @@ export function renderSummaryPanel(root: HTMLElement, data: GameData) {
                     el('span', { class: 'tier-pips' }, [`${tier.pieces}`]),
                     e.kind === 'stat'
                       ? `${name(e.statId)} +${e.value.n}${e.value.percent ? '%' : ''}`
-                      : el('em', {}, [e.name]),
+                      : el('em', {}, [tTalent(e.name)]),
                   ])))),
               s.next
                 ? el('p', { class: 'muted next' }, [
@@ -69,7 +69,7 @@ export function renderSummaryPanel(root: HTMLElement, data: GameData) {
         ? el('ul', { class: 'talent-list' }, talents.map((tl) =>
             el('li', {}, [
               el('div', { class: 'talent-head' }, [
-                el('strong', {}, [tl.name]),
+                el('strong', {}, [tTalent(tl.name)]),
                 el('span', { class: 'talent-source' }, [tSet(tl.source)]),
               ]),
               tl.description

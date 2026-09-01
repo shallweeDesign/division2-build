@@ -1,6 +1,7 @@
 /** 介面文案 / UI strings, with the language persisted across visits. */
 import { STAT_ZH } from './stats.ts';
 import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
+import { talentZh } from './talents.ts';
 
 export type Lang = 'zh-tw' | 'en';
 
@@ -115,6 +116,13 @@ export const tStat = (statId: string, fallback: string) =>
 
 /** 品牌／套裝名 / Set name in the active language, falling back to English. */
 export const tSet = (name: string) => (current === 'zh-tw' ? SET_ZH[name] ?? name : name);
+
+/**
+ * 天賦名 / Talent name in the active language. Only a minority have a sourced
+ * Chinese name, so the English one stands in rather than a guessed rendering.
+ */
+export const tTalent = (name: string) =>
+  (current === 'zh-tw' ? talentZh(name) ?? name : name);
 
 /**
  * 裝備名 / Item name in the active language.

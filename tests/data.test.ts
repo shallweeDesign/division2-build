@@ -4,6 +4,7 @@
  * fails here rather than surfacing as wrong numbers in the UI.
  */
 import { describe, expect, it } from 'vitest';
+import { TALENT_ZH, talentZh } from '../src/i18n/talents.ts';
 import { readFileSync } from 'node:fs';
 import { GEAR_SLOTS } from '../src/model/types.ts';
 import type { GameData } from '../src/model/types.ts';
@@ -214,5 +215,33 @@ describe('item names', () => {
     // Not a failure: these fall back to English until confirmed names exist.
     console.info(`  ℹ ${missing.length}/${special.length} named/exotic items have no Chinese name yet`);
     expect(missing.length).toBeLessThanOrEqual(special.length);
+  });
+});
+
+describe('talent names', () => {
+  const talents = new Set([
+    ...data.gearTalents.map((t) => t.name),
+    ...data.weaponTalents.map((t) => t.name),
+  ]);
+
+  it('only maps talents that still exist in the dataset', () => {
+    // The community sheets list talents the game has removed; anything left
+    // here that the data no longer knows about is a stale mapping.
+    for (const name of Object.keys(TALENT_ZH)) expect(talents, name).toContain(name);
+  });
+
+  it('derives the Perfect variant from its base talent', () => {
+    expect(talentZh('Perfect Braced')).toBe('完美鼓起勇氣');
+    expect(talentZh('Braced')).toBe('鼓起勇氣');
+  });
+
+  it('returns nothing for a talent with no sourced name', () => {
+    expect(talentZh('Bewildered')).toBeUndefined();
+  });
+
+  it('reports how many talents still lack a Chinese name', () => {
+    const named = [...talents].filter((n) => talentZh(n) !== undefined).length;
+    console.info(`  ℹ ${talents.size - named}/${talents.size} talents have no Chinese name yet`);
+    expect(named).toBeGreaterThan(0);
   });
 });
