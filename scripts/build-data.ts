@@ -11,9 +11,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   AttributeDef, AttributeSlotSpec, Augment, BonusEntry, Category, GameData, GearItem,
-  GearSlot, SetDef, SetTier, SkillVariant, Stat, Talent, Value, Weapon,
+  GearSlot, SetDef, SetTier, SkillVariant, Stat, Talent, Value, Weapon, WeaponMod, WeaponModSlot,
 } from '../src/model/types.ts';
-import { GEAR_SLOTS } from '../src/model/types.ts';
+import { GEAR_SLOTS, WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data');
@@ -243,6 +243,35 @@ function gearItems(attrIds: Set<string>, setNames: Set<string>, talentNames: Set
   return gear;
 }
 
+// ── weapon mods ───────────────────────────────────────────────────────────────
+/**
+ * `stats` is a `|`-separated list of `stat-id:value`, and a value may be
+ * negative — a long scope buys headshot damage with reload speed.
+ */
+function weaponMods(statIds: Set<string>): WeaponMod[] {
+  const file = 'weapons/weapon_mods.csv';
+  return read(file).map((r, i) => {
+    const name = r['name'] ?? '';
+    const where = `${file} row ${i + 2} (${name})`;
+    const category = cell(r, 'category', file);
+    if (!(WEAPON_MOD_CATEGORIES as readonly string[]).includes(category)) {
+      fail(`${where}: unknown category "${category}"`);
+    }
+    const compatibility = NA(r['compatibility'] ?? '') ? [] : (r['compatibility'] ?? '').split('|');
+    const raw = cell(r, 'stats', file);
+    const stats = NA(raw) ? [] : raw.split('|').map((part) => {
+      const cut = part.indexOf(':');
+      if (cut < 0) { fail(`${where}: stat "${part}" is missing its value`); return null; }
+      const statId = part.slice(0, cut).trim();
+      if (!statIds.has(statId)) fail(`${where}: unknown stat "${statId}"`);
+      const value = parseValue(part.slice(cut + 1).trim(), `${where} ${statId}`);
+      if (!value) { fail(`${where}: stat "${statId}" has no readable value`); return null; }
+      return { statId, value };
+    }).filter((x): x is { statId: string; value: Value } => x !== null);
+    return { name, category: category as WeaponMod['category'], compatibility, stats };
+  });
+}
+
 // ── weapons ───────────────────────────────────────────────────────────────────
 const WEAPON_FILES: [string, string][] = [
   ['weapons/assault_rifles.csv', 'Assault Rifle'], ['weapons/lmgs.csv', 'LMG'],
@@ -250,7 +279,7 @@ const WEAPON_FILES: [string, string][] = [
   ['weapons/rifles.csv', 'Rifle'], ['weapons/shotguns.csv', 'Shotgun'], ['weapons/smgs.csv', 'SMG'],
 ];
 
-function weapons(attrIds: Set<string>, talentNames: Set<string>): Weapon[] {
+function weapons(attrIds: Set<string>, talentNames: Set<string>, modNames: Set<string>): Weapon[] {
   const out: Weapon[] = [];
   for (const [file, weaponType] of WEAPON_FILES) {
     read(file).forEach((r, i) => {
@@ -287,6 +316,19 @@ function weapons(attrIds: Set<string>, talentNames: Set<string>): Weapon[] {
         cores: slots('core'),
         minors: slots('minor'),
         talent: parseTalentSlot(r['talent_slot'] ?? 'N/A', `${where} talent_slot`, talentNames, new Set()),
+        mods: WEAPON_MOD_CATEGORIES.flatMap((category): WeaponModSlot[] => {
+          const raw = r[category] ?? '';
+          if (NA(raw)) return [];
+          if (raw.startsWith('type:')) return [{ category, mode: 'choice', slug: raw.slice(5) }];
+          if (raw.startsWith('fixed:')) {
+            // One row ships a leading space before the part name.
+            const modName = raw.slice(6).trim();
+            if (!modNames.has(modName)) fail(`${where} ${category}: unknown mod "${modName}"`);
+            return [{ category, mode: 'fixed', name: modName }];
+          }
+          fail(`${where} ${category}: expected "type:<slug>" or "fixed:<name>", got "${raw}"`);
+          return [];
+        }),
       });
     });
   }
@@ -316,6 +358,7 @@ function main() {
     }));
   const gearTalents = talentRows('gear/gear_talents.csv');
   const weaponTalents = talentRows('weapons/weapon_talents.csv');
+  const wMods = weaponMods(new Set(stats.map((s) => s.id)));
   const gearTalentSlugs = new Set(gearTalents.flatMap((t) => t.compatibility));
 
   const sets = [
@@ -351,7 +394,8 @@ function main() {
   meta.knownGaps = notes;
   const data: GameData = {
     meta, stats, attributes, gearMods, sets, gearTalents, weaponTalents,
-    gear, weapons: weapons(attrIds, allTalents), skills, augments,
+    weaponMods: wMods,
+    gear, weapons: weapons(attrIds, allTalents, new Set(wMods.map((m) => m.name))), skills, augments,
   };
 
   if (problems.length) {
@@ -367,7 +411,7 @@ function main() {
   console.log(`✓ ${sets.filter((s) => s.kind === 'brand').length} brands, ${sets.filter((s) => s.kind === 'gearset').length} gear sets`);
   console.log(`✓ ${stats.length} stats, ${attributes.length} attributes, ${gearMods.length} gear mods`);
   console.log(`✓ ${gearTalents.length} gear talents, ${weaponTalents.length} weapon talents`);
-  console.log(`✓ ${data.weapons.length} weapons, ${skills.length} skill variants, ${augments.length} augments`);
+  console.log(`✓ ${data.weapons.length} weapons, ${wMods.length} weapon mods, ${skills.length} skill variants, ${augments.length} augments`);
   for (const n of notes) console.warn(`⚠ 已知缺口 / known gap: ${n}`);
 }
 

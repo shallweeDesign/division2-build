@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { TALENT_ZH, talentZh } from '../src/i18n/talents.ts';
+import { WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
 import { readFileSync } from 'node:fs';
 import { GEAR_SLOTS } from '../src/model/types.ts';
 import type { GameData } from '../src/model/types.ts';
@@ -243,5 +244,46 @@ describe('talent names', () => {
     const named = [...talents].filter((n) => talentZh(n) !== undefined).length;
     console.info(`  ℹ ${talents.size - named}/${talents.size} talents have no Chinese name yet`);
     expect(named).toBeGreaterThan(0);
+  });
+});
+
+describe('weapon mods', () => {
+  const mods = data.weaponMods;
+  const byName = new Map(mods.map((m) => [m.name, m]));
+  const statIds = new Set(data.stats.map((s) => s.id));
+
+  it('parses every row with a known category and stat', () => {
+    expect(mods.length).toBeGreaterThan(200);
+    for (const m of mods) {
+      expect(WEAPON_MOD_CATEGORIES, m.name).toContain(m.category);
+      for (const st of m.stats) expect(statIds, `${m.name}/${st.statId}`).toContain(st.statId);
+    }
+  });
+
+  it('keeps a mod that trades one stat away for another', () => {
+    // A long scope buys headshot damage with reload speed; a parser that
+    // dropped the sign would quietly make it a pure upgrade.
+    const negative = mods.filter((m) => m.stats.some((s) => s.value.n < 0));
+    expect(negative.length).toBeGreaterThan(0);
+  });
+
+  it('offers at least one part for every choice slot a weapon has', () => {
+    const unfillable: string[] = [];
+    for (const w of data.weapons) {
+      for (const slot of w.mods) {
+        if (slot.mode !== 'choice') continue;
+        const fits = mods.some((m) => m.category === slot.category && m.compatibility.includes(slot.slug));
+        if (!fits) unfillable.push(`${w.name} ${slot.category}:${slot.slug}`);
+      }
+    }
+    expect(unfillable).toEqual([]);
+  });
+
+  it('resolves every fixed mod to a real part', () => {
+    for (const w of data.weapons) {
+      for (const slot of w.mods) {
+        if (slot.mode === 'fixed') expect(byName.has(slot.name), `${w.name}: ${slot.name}`).toBe(true);
+      }
+    }
   });
 });

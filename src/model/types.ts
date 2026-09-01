@@ -89,6 +89,27 @@ export interface Talent {
   description: string;
 }
 
+export const WEAPON_MOD_CATEGORIES = ['optics', 'magazine', 'muzzle', 'underbarrel'] as const;
+export type WeaponModCategory = (typeof WEAPON_MOD_CATEGORIES)[number];
+
+/** 武器配件 / One row of weapon_mods.csv: a named part with fixed stat changes. */
+export interface WeaponMod {
+  name: string;
+  category: WeaponModCategory;
+  /**
+   * Slot slugs this part fits. Empty means the row named no slug — those are
+   * reachable only from a weapon that asks for them by name, not from a
+   * dropdown, so an empty list is "fits nothing" rather than "fits everything".
+   */
+  compatibility: string[];
+  /** Can be negative: a scope that trades reload speed for headshot damage. */
+  stats: { statId: string; value: Value }[];
+}
+
+export type WeaponModSlot =
+  | { category: WeaponModCategory; mode: 'choice'; slug: string }
+  | { category: WeaponModCategory; mode: 'fixed'; name: string };
+
 export interface Weapon {
   id: string;
   name: string;
@@ -107,6 +128,12 @@ export interface Weapon {
   cores: AttributeSlotSpec[];
   minors: AttributeSlotSpec[];
   talent: { mode: 'choice'; slug: string } | { mode: 'fixed'; name: string } | null;
+  /**
+   * Mod slots in fixed order; a weapon without a given slot omits it.
+   * Exotics and some named weapons bolt a specific part on instead of taking
+   * a category, so a slot is either a choice or already decided.
+   */
+  mods: WeaponModSlot[];
 }
 
 export interface SkillVariant {
@@ -142,6 +169,7 @@ export interface GameData {
   sets: SetDef[];
   gearTalents: Talent[];
   weaponTalents: Talent[];
+  weaponMods: WeaponMod[];
   gear: Record<GearSlot, GearItem[]>;
   weapons: Weapon[];
   skills: SkillVariant[];
