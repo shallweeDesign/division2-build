@@ -103,6 +103,58 @@ export const GEAR_SET_ZH: Record<string, string> = {
  * 具名與奇特裝備 / Named and exotic items, keyed by their English name.
  * Deliberately sparse — see the file header.
  */
-export const ITEM_ZH: Record<string, string> = {};
+export const ITEM_ZH: Record<string, string> = {
+  // 由「完美天賦」反查 / Derived from the Perfect talent each piece is locked to.
+  // A named piece carries exactly one Perfect talent and each Perfect talent
+  // belongs to exactly one piece, so pairing the data set's item→talent link
+  // with the source's talent→item column names the piece without reading the
+  // name itself. The comment on each line is the talent that identified it.
+  "Anarchist's Cookbook": '無政府主義者食譜',  // Perfect Wicked
+  'Axel': '阿克塞爾',  // Perfect Energize
+  'Backbone': '骨幹',  // Perfect Unstoppable Force
+  'Battery Pack': '電池包',  // Perfect Calculated
+  'Benefactor': '贊助人',  // Perfect Empathic Resolve
+  'Bober': '鮑伯',  // Perfect Entrench
+  'Bulldog': '鬥牛犬',  // Perfect Composure
+  "Caesar's Guard": '凱撒護胸',  // Perfect Skilled
+  "Cap'n": '隊長',  // Perfect Leadership
+  'Carpenter': '破壞巧匠',  // Perfect Mad Bomber
+  'Chainkiller': '連環殺手',  // Perfect Headhunter
+  'Cherished': '蒙主恩寵',  // Perfect Trauma
+  'Closer': '縮距護胸',  // Perfect Spotter
+  'Combustor': '燃燒室',  // Perfect Explosive Delivery
+  "Devil's Due": '魔鬼回報',  // Perfect Clutch
+  "Door-Kicker's Knock": '破門提醒',  // Perfect Spark
+  'Equalizer': '平等之人',  // Perfect Obliterate
+  'Everyday Carrier': '日常背心',  // Perfect Efficient
+  'Ferocious Calm': '兇猛平靜',  // Perfect Overwatch
+  'Force Multiplier': '戰力倍增',  // Perfect Combined Arms
+  'Henri': '亨利',  // Perfect Companion
+  'Hermano': '兄弟',  // Perfect Overclock
+  'Hunter-Killer': '獵人殺手',  // Perfect Intimidate
+  'Impetus': '無限衝勁',  // Perfect Kinetic Momentum
+  'Keeper': '看守者',  // Perfect Protector
+  'Lavoisier': '拉瓦節',  // Perfect Galvanize
+  'Liquid Engineer': '液態工程師',  // Perfect Bloodsucker
+  'Matador': '鬥牛士',  // Perfect Adrenaline Rush
+  'Melon Baller': '點頭高手',  // Perfect Concussion
+  'Momma Badger': '母獾',  // Perfect Safeguard
+  'Percussive Maintenance': '敲打維護',  // Perfect Tech Support
+  'Pointman': '尖兵',  // Perfect Vanguard
+  'Pristine Example': '精粹典範',  // Perfect Focus
+  'Proxy': '代理',  // Perfect Tamper Proof
+  'Robin': '知更鳥',  // Perfect Gunslinger
+  'Rushdown': '強攻',  // Perfect Tag Team
+  'Sleight': '靈巧身手',  // Perfect Protected Reload
+  'Strategic Alignment': '戰略一致',  // Perfect Shock and Awe
+  'The Courier': '聖使',  // Perfect Creeping Death
+  'The Gift': '禮物',  // Perfect Vigilance
+  'The Sacrifice': '犧牲奉獻',  // Perfect Glass Cannon
+  'The Setup': '收納裝配',  // Perfect Opportunistic
+  'Trick Shot': '亂槍打鳥',  // Perfect Reassigned
+  'Vedmedytsya Vest': '亞列姆切背心',  // Perfect Braced
+  'Vigil': '守夜',  // Perfect Versatile
+  "Zero F's": '「零」為不亂',  // Perfect Unbreakable
+};
 
 export const SET_ZH = { ...BRAND_ZH, ...GEAR_SET_ZH };
