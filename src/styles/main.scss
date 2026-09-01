@@ -91,6 +91,49 @@ select, input[type="number"] {
 }
 
 .summary-col { display: grid; gap: .75rem; align-content: start; }
+.watch-col { display: block; }
+
+
+// SHD 手錶 / Watch entry: sixteen small numbers, so the grid is dense and the
+// inputs are sized to the two or three digits they actually hold.
+.watch {
+  .watch-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+
+  h3 {
+    margin: .25rem 0 .35rem; font-size: .78rem; letter-spacing: .08em;
+    text-transform: uppercase; color: $muted;
+  }
+
+  .watch-node.cat-offensive h3 { color: $offensive; }
+  .watch-node.cat-defensive h3 { color: $defensive; }
+  .watch-node.cat-skill h3 { color: $skill; }
+
+  .watch-nodes {
+    display: grid; gap: .5rem 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .watch-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
+
+  .watch-list li {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    font-size: .86rem;
+  }
+
+  .watch-entry { display: flex; align-items: center; gap: .2rem; flex: none; }
+  .watch-unit { color: $muted; font-size: .8rem; }
+
+  .watch-input {
+    width: 4.5rem; text-align: right;
+    background: $bg; color: inherit; border: 1px solid $line; border-radius: 3px;
+    padding: .2rem .35rem; font: inherit; font-size: .86rem;
+
+    &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
+    // The spinners steal width from a field this narrow.
+    &::-webkit-inner-spin-button, &::-webkit-outer-spin-button { appearance: none; margin: 0; }
+    appearance: textfield;
+  }
+}
 
 .panel {
   background: $panel; border: 1px solid $line; border-radius: 4px; padding: .75rem;

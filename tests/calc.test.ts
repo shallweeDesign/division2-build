@@ -7,6 +7,7 @@ import { emptyBuild } from '../src/model/build.ts';
 import type { BuildState } from '../src/model/build.ts';
 import { activeSets, attributeIndex, computeBuild, defaultChoice, defaultChoicesFor, eligible } from '../src/model/calc/index.ts';
 import { SKILL_TIER_CAP, STAT_CAPS } from '../src/model/calc/constants.ts';
+import { WATCH_STAT_IDS, WATCH_STATS } from '../src/model/watch.ts';
 import { resolveRecommended } from '../src/model/calc/recommend.ts';
 import { RECOMMENDED } from '../src/data/recommended.ts';
 
@@ -268,3 +269,60 @@ describe('recommended builds', () => {
     }
   });
 });
+
+describe('SHD watch', () => {
+  const statOf = (b: BuildState, id: string) =>
+    computeBuild(data, b).stats.find((s) => s.statId === id);
+
+  it('names sixteen stats that all exist in the dataset', () => {
+    const known = new Set(data.stats.map((s) => s.id));
+    expect(WATCH_STATS).toHaveLength(16);
+    expect(new Set(WATCH_STAT_IDS).size).toBe(16);
+    for (const id of WATCH_STAT_IDS) expect(known, id).toContain(id);
+  });
+
+  it('contributes nothing when the watch is untouched', () => {
+    expect(computeBuild(data, emptyBuild()).stats).toHaveLength(0);
+  });
+
+  it('adds its bonus to the totals as a percentage', () => {
+    const b = emptyBuild();
+    b.watch['weapon-damage'] = 5;
+    const stat = statOf(b, 'weapon-damage');
+    expect(stat?.value).toBe(5);
+    expect(stat?.percent).toBe(true);
+  });
+
+  it('stacks with what the gear already rolled', () => {
+    const withGear = emptyBuild();
+    equip(withGear, 'chest', BRAND);
+    const before = statOf(withGear, 'weapon-damage')?.value ?? 0;
+
+    withGear.watch['weapon-damage'] = 5;
+    expect(statOf(withGear, 'weapon-damage')?.value).toBeCloseTo(before + 5, 5);
+  });
+
+  it('counts towards a capped stat rather than bypassing the cap', () => {
+    const cap = STAT_CAPS['critical-hit-chance']!;
+    const b = emptyBuild();
+    b.watch['critical-hit-chance'] = cap + 10;
+    const stat = statOf(b, 'critical-hit-chance');
+    expect(stat?.value).toBe(cap);
+    expect(stat?.capped).toBe(true);
+  });
+
+  it('is attributed to the watch in the contribution breakdown', () => {
+    const b = emptyBuild();
+    b.watch['skill-haste'] = 7.5;
+    const stat = statOf(b, 'skill-haste');
+    expect(stat?.contributions).toEqual([{ source: 'SHD', value: 7.5 }]);
+  });
+
+  it('tolerates a build saved before the watch existed', () => {
+    // Phase 5 will share builds through the URL, so an older link will arrive
+    // without a watch key at all.
+    const { watch: _dropped, ...legacy } = emptyBuild();
+    expect(() => computeBuild(data, legacy as BuildState)).not.toThrow();
+  });
+});
+

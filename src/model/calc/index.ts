@@ -7,7 +7,11 @@ import type {
 } from '../types.ts';
 import { GEAR_SLOTS } from '../types.ts';
 import type { BuildState, SlotChoice, SlotState } from '../build.ts';
+import { WATCH_STAT_IDS } from '../watch.ts';
 import { MAX_PIECES, STAT_CAPS } from './constants.ts';
+
+/** Label used for every watch contribution, so the UI can pick them out. */
+export const WATCH_SOURCE = 'SHD';
 
 export interface Contribution {
   source: string;
@@ -184,7 +188,14 @@ export function computeBuild(data: GameData, build: BuildState): BuildSummary {
     }
   }
 
-  // 3. Total and cap.
+  // 3. SHD watch. Same buckets as everything else, so a watch bonus counts
+  //    towards a cap exactly like a rolled attribute does.
+  for (const statId of WATCH_STAT_IDS) {
+    const n = build.watch?.[statId] ?? 0;
+    add(buckets, statId, WATCH_SOURCE, { n, percent: true });
+  }
+
+  // 4. Total and cap.
   const stats: StatTotal[] = [...buckets]
     .map(([statId, b]) => {
       const cap = STAT_CAPS[statId];

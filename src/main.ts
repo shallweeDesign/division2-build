@@ -7,6 +7,7 @@ import type { Lang } from './i18n/index.ts';
 import { renderGearPanel } from './ui/gear-panel.ts';
 import { renderSummaryPanel } from './ui/summary-panel.ts';
 import { renderRecommendedPanel } from './ui/recommended-panel.ts';
+import { renderWatchPanel } from './ui/watch-panel.ts';
 import { reset, subscribe } from './ui/store.ts';
 import { el } from './ui/dom.ts';
 
@@ -18,9 +19,10 @@ const banner = el('p', { class: 'data-banner' });
 const recommended = el('section', { class: 'recommended' });
 const layout = el('div', { class: 'layout' });
 const gearCol = el('div', { class: 'gear-col' });
+const watch = el('div', { class: 'watch-col' });
 const summaryCol = el('aside', { class: 'summary-col' });
 layout.append(gearCol, summaryCol);
-app.append(header, banner, layout, recommended);
+app.append(header, banner, watch, layout, recommended);
 
 function renderChrome() {
   header.replaceChildren(
@@ -43,12 +45,16 @@ function renderChrome() {
 function renderAll() {
   renderChrome();
   renderGearPanel(gearCol, data);
+  renderWatchPanel(watch, data);
   renderSummaryPanel(summaryCol, data);
   renderRecommendedPanel(recommended, data);
 }
 
 subscribe((scope) => {
-  if (scope === 'gear') renderGearPanel(gearCol, data);
+  // The watch panel is deliberately not re-rendered on 'summary': that scope
+  // fires on every keystroke inside it, and replacing the input would drop the
+  // caret. Its own state is already what the player just typed.
+  if (scope === 'gear') { renderGearPanel(gearCol, data); renderWatchPanel(watch, data); }
   renderSummaryPanel(summaryCol, data);
 });
 
