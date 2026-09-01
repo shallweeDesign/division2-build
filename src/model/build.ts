@@ -1,5 +1,5 @@
 /** 配裝狀態 / The build a player is assembling. */
-import type { GearSlot, Value, WeaponSlot } from './types.ts';
+import type { GearSlot, SpecializationId, Value, WeaponSlot } from './types.ts';
 import { GEAR_SLOTS, WEAPON_SLOTS } from './types.ts';
 import { WATCH_STAT_IDS } from './watch.ts';
 
@@ -52,6 +52,14 @@ export interface BuildState {
    * panel can render without guarding, with 0 meaning "nothing invested".
    */
   watch: Record<string, number>;
+  /**
+   * 專精 / The chosen specialization and which of its talents are taken.
+   *
+   * Talents are held by name rather than by tree position: the tree decides
+   * what you may buy, but what a build *has* is a set of talents, and that is
+   * what the summary and the totals care about.
+   */
+  spec: { id: SpecializationId | null; talents: string[] };
 }
 
 export const emptyWatch = (): Record<string, number> =>
@@ -63,4 +71,5 @@ export const emptyBuild = (): BuildState => ({
   gear: Object.fromEntries(GEAR_SLOTS.map((s) => [s, emptySlot()])) as Record<GearSlot, SlotState>,
   weapons: Object.fromEntries(WEAPON_SLOTS.map((s) => [s, emptyWeapon()])) as Record<WeaponSlot, WeaponSlotState>,
   watch: emptyWatch(),
+  spec: { id: null, talents: [] },
 });

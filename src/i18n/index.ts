@@ -31,6 +31,21 @@ const UI = {
   noTalentText: { 'zh-tw': '資料源沒有這個天賦的說明', en: 'No wording for this talent in the dataset' },
   weapons: { 'zh-tw': '武器', en: 'Weapons' },
   damage: { 'zh-tw': '傷害', en: 'Damage' },
+  specialization: { 'zh-tw': '專精', en: 'Specialization' },
+  notCounted: { 'zh-tw': '（未計入數值）', en: '(not counted)' },
+  specStandalone: { 'zh-tw': '獨立節點', en: 'Standalone nodes' },
+  specEquipNote: {
+    'zh-tw': '以下是專精配備（手榴彈、專精手槍、簽名武器彈藥），沒有可選的天賦層級。',
+    en: 'Spec equipment — grenade, sidearm, signature ammo. No talent tiers to pick.',
+  },
+  spec: {
+    demolitionist: { 'zh-tw': '爆破手', en: 'Demolitionist' },
+    firewall:      { 'zh-tw': '防火牆', en: 'Firewall' },
+    gunner:        { 'zh-tw': '機槍手', en: 'Gunner' },
+    sharpshooter:  { 'zh-tw': '神射手', en: 'Sharpshooter' },
+    survivalist:   { 'zh-tw': '生存者', en: 'Survivalist' },
+    technician:    { 'zh-tw': '技術員', en: 'Technician' },
+  },
   dpsOverview: { 'zh-tw': 'DPS 概覽', en: 'DPS overview' },
   damageNumbers: { 'zh-tw': '每發傷害', en: 'Damage numbers' },
   baseOnly: { 'zh-tw': '武器本身', en: 'Base' },
@@ -149,6 +164,7 @@ export const t = (key: keyof typeof UI): string => {
 
 export const tSlot = (slot: keyof typeof UI.slot) => pick(UI.slot[slot]);
 export const tWeaponSlot = (s: keyof typeof UI.weaponSlot) => pick(UI.weaponSlot[s]);
+export const tSpec = (s: keyof typeof UI.spec) => pick(UI.spec[s]);
 /** Weapon types come from the data set, so an unknown one falls back to itself. */
 export const tWeaponType = (name: string) =>
   (name in UI.weaponType ? pick(UI.weaponType[name as keyof typeof UI.weaponType]) : name);

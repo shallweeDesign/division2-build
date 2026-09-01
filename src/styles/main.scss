@@ -108,6 +108,37 @@ select, input[type="number"] {
 .watch-col { display: block; }
 .summary-inner, .damage-col { display: grid; gap: .75rem; }
 
+// 專精 / Specialization tree, grouped by hub the way it reads in game.
+.spec {
+  h3 {
+    display: flex; align-items: baseline; justify-content: space-between; gap: .5rem;
+    margin: 1rem 0 .35rem; font-size: .8rem; letter-spacing: .06em;
+    text-transform: uppercase; color: $accent; font-weight: 500;
+  }
+
+  .spec-budget { color: $muted; font-size: .7rem; letter-spacing: 0; text-transform: none; }
+
+  h4 { margin: .55rem 0 .2rem; font-size: .82rem; color: $text; font-weight: 500; }
+
+  .spec-node { padding-left: .5rem; border-left: 1px solid $line; }
+
+  .spec-talent {
+    display: grid; grid-template-columns: auto 1.1rem 1fr auto;
+    gap: .4rem; align-items: baseline;
+    padding: .18rem 0; font-size: .8rem; cursor: pointer;
+    &:hover { color: $text; }
+  }
+
+  .spec-tier { color: $muted; font-size: .7rem; font-variant-numeric: tabular-nums; }
+  .spec-desc { color: $muted; line-height: 1.5; }
+  .spec-effect { color: $skill; font-size: .74rem; white-space: nowrap; }
+  // A talent whose wording carries no number reads as text, not as a stat.
+  .is-text-only .spec-effect { color: $muted; font-style: italic; }
+
+  .spec-innate { margin: .3rem 0 0; padding-left: 1.1rem; font-size: .8rem; color: $muted; }
+  .spec-innate li { margin-bottom: .12rem; }
+}
+
 // 傷害面板 / Damage: base against build, then the eight cells.
 .damage {
   .dmg-tabs { display: flex; gap: .25rem; margin-bottom: .6rem; flex-wrap: wrap; }
