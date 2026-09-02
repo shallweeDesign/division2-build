@@ -6,6 +6,8 @@
 import { describe, expect, it } from 'vitest';
 import { TALENT_ZH, talentZh } from '../src/i18n/talents.ts';
 import { WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
+import { ITEM_ZH } from '../src/i18n/names.ts';
+const tItemName = (n: string) => ITEM_ZH[n] ?? n;
 import { readFileSync } from 'node:fs';
 import { GEAR_SLOTS } from '../src/model/types.ts';
 import type { GameData } from '../src/model/types.ts';
@@ -337,5 +339,23 @@ describe('specializations', () => {
     expect(conditional).toBeDefined();
     expect(conditional!.effects).toEqual([]);
     expect(conditional!.description).not.toBe('');
+  });
+});
+
+describe('exotic weapon names', () => {
+  it('names every exotic, and names nothing that is not one', () => {
+    const exotics = new Set(data.weapons.filter((w) => w.isExotic).map((w) => w.name));
+    const named = [...exotics].filter((n) => tItemName(n) !== n);
+    expect(named).toHaveLength(exotics.size);
+  });
+
+  it('keys nothing that no longer exists upstream', () => {
+    // Every key must be a real weapon or a real gear piece; a rename upstream
+    // should fail here rather than leave a Chinese label pointing at nothing.
+    const real = new Set([
+      ...data.weapons.map((w) => w.name),
+      ...Object.values(data.gear).flat().map((i) => i.name),
+    ]);
+    for (const key of Object.keys(ITEM_ZH)) expect(real, key).toContain(key);
   });
 });

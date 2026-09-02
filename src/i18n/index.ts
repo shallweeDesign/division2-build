@@ -181,6 +181,9 @@ export const tStat = (statId: string, fallback: string) =>
   current === 'zh-tw' ? STAT_ZH[statId] ?? fallback : fallback;
 
 /** 品牌／套裝名 / Set name in the active language, falling back to English. */
+/** 武器名 / Weapon name; only exotics have a sourced Chinese name so far. */
+export const tWeapon = (name: string) => (current === 'zh-tw' ? ITEM_ZH[name] ?? name : name);
+
 export const tSet = (name: string) => (current === 'zh-tw' ? SET_ZH[name] ?? name : name);
 
 /**

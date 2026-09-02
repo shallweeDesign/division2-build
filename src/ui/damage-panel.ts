@@ -14,7 +14,7 @@ import { WEAPON_SLOTS } from '../model/types.ts';
 import { computeWeapon } from '../model/calc/index.ts';
 import { HEADSHOT_CRIT, weaponDamage } from '../model/calc/damage.ts';
 import type { DamageNumbers, DpsNumbers } from '../model/calc/damage.ts';
-import { t, tWeaponSlot } from '../i18n/index.ts';
+import { t, tWeapon, tWeaponSlot } from '../i18n/index.ts';
 import { build, update } from './store.ts';
 import { clear, el } from './dom.ts';
 
@@ -97,7 +97,7 @@ export function renderDamagePanel(root: HTMLElement, data: GameData) {
     el('h2', {}, [t('damage')]),
     tabs,
     el('p', { class: 'weapon-base' }, [
-      [w.name, w.rpm !== null ? `${w.rpm} RPM` : null,
+      [tWeapon(w.name), w.rpm !== null ? `${w.rpm} RPM` : null,
        w.magSize !== null ? `${t('magazine')} ${w.magSize}` : null].filter(Boolean).join('　'),
     ]),
 

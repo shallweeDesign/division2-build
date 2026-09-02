@@ -103,6 +103,62 @@ export const GEAR_SET_ZH: Record<string, string> = {
  * 具名與奇特裝備 / Named and exotic items, keyed by their English name.
  * Deliberately sparse — see the file header.
  */
+/**
+ * 奇特武器 / Exotic weapon names, derived the way the named gear was.
+ *
+ * Each exotic is locked to one talent and no other weapon carries it, so
+ * pairing the data set's weapon-to-talent link with the source's talent column
+ * names the weapon without reading its name. Bluescreen fell out that way: its
+ * Disruptor Rounds marks an enemy up to 50 stacks, and exactly one row in the
+ * source describes that.
+ */
+const EXOTIC_WEAPON_ZH: Record<string, string> = {
+  'Agitator': '鼓動者',
+  'Backfire': '逆火',
+  'Big Alejandro': '大亞歷杭德羅',
+  'Bittersweet': '苦甜',
+  'Bluescreen': '藍螢幕',
+  'Bullet King': '槍彈王者',
+  'Busy Little Bee': '辛勤小蜜蜂',
+  'Caduceus': '雙蛇杖',
+  'Capacitor': '電容突擊',
+  'Chameleon': '變色龍',
+  'Diamondback': '響尾蛇',
+  'Doctor Home': '醫生之家',
+  'Dread Edict': '恐懼法令',
+  'Eagle Bearer': '帶鷹人',
+  'Fafnir': '法夫納',
+  'Iron Lung': '鐵龍',
+  'Lady Death': '死亡女神',
+  'Liberty': '自由',
+  'Mantis': '螳螂',
+  'Merciless': '無情',
+  'Mosquito': '蚊子',
+  'Nemesis': '復仇女神',
+  'Ouroboros': '銜尾蛇',
+  'Overlord': '霸主',
+  'Oxpecker': '牛椋鳥',
+  'Pakhan': '帕坎',
+  'Pestilence': '鼠疫',
+  'Prima Donna': '核心人物',
+  'Regulus': '王子左輪手槍',
+  'Sacrum Imperium': '神聖帝國',
+  'Scorpio': '天蝎座',
+  'Sheriff': '警長',
+  'Shroud': '帷幕',
+  "St. Elmo's Engine": '聖艾爾摩引擎',
+  'Steel & Sons ACR': '斯蒂爾子嗣 ACR',
+  'Strega': '女巫',
+  'Sweet Dreams': '美夢',
+  'Tempest': '子彈風暴',
+  'The Bighorn': '大角突擊步槍',
+  'The Chatterbox': '話匣子',
+  'The Ravenous': '饑餓之人',
+  'Underboss': '二當家',
+  'Vindicator': '復仇者',
+  'Whiplash': '鞭子',
+};
+
 export const ITEM_ZH: Record<string, string> = {
   // 由「完美天賦」反查 / Derived from the Perfect talent each piece is locked to.
   // A named piece carries exactly one Perfect talent and each Perfect talent
@@ -156,5 +212,7 @@ export const ITEM_ZH: Record<string, string> = {
   'Vigil': '守夜',  // Perfect Versatile
   "Zero F's": '「零」為不亂',  // Perfect Unbreakable
 };
+
+Object.assign(ITEM_ZH, EXOTIC_WEAPON_ZH);
 
 export const SET_ZH = { ...BRAND_ZH, ...GEAR_SET_ZH };

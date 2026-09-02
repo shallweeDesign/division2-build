@@ -74,6 +74,59 @@ const WEAPON: Record<string, string> = {
   'Vindictive': '報復之心',
 };
 
+
+/**
+ * 奇特武器天賦 / The talent bolted to each exotic weapon, read from the same
+ * source's talent column next to the weapon it belongs to.
+ *
+ * Keyed by looking each weapon's talent up in the data set rather than by
+ * writing the English name out: a first pass spelled eleven of them from the
+ * Chinese and got all eleven wrong — Agitator's talent is Perturb, not
+ * Antagonize — which the "every mapped name still exists" test caught.
+ */
+const EXOTIC: Record<string, string> = {
+  'Actum Est': '蓋棺論定',
+  'Adaptive Instincts': '適應本能',
+  'Agonizing Bite': '痛苦齧咬',
+  'Ardent': '高溫射擊',
+  'Autentico': '實證可靠',
+  'Big Game Hunter': '王牌獵人',
+  'Binary Trigger': '雙向扳機',
+  'Breathe Free': '自由呼吸',
+  'Bullet Hell': '槍彈地獄',
+  'Busy Little Bee': '辛勤小蜜蜂',
+  'Caduceus': '雙蛇杖',
+  'Capacitance': '技能電容',
+  'Capitulate': '屈服',
+  'Cover Shooter': '掩體槍手',
+  'Disruptor Rounds': '干擾子彈',
+  'Doctor Home': '醫生之家',
+  "Dragon's Breath": '龍之息',
+  'Electromagnetic Accelerator': '電磁加速器',
+  'Faster Than Reloading': '快於換彈',
+  'Full Stop': '完全停歇',
+  'Gangland Hit': '結黨追隨',
+  'Geri and Freki': '基立和庫力奇',
+  'High Priority Target': '高優先',
+  'In Plain Sight': '一目了然',
+  'Incessant Chatter': '喋喋不休',
+  'Mosquito Song': '蚊曲',
+  'Ortiz Assault Interface': '奧提茲',
+  'Pakhan': '帕坎',
+  'Payment in Kind': '實物支付',
+  'Perturb': '干擾',
+  'Plague of the Outcasts': '流亡者的瘟疫',
+  'Regicide': '弒君',
+  'Restrained': '束縛解除',
+  'Rule Them All': '連帶征服',
+  'Sandman': '睡魔',
+  'Septic Shock': '敗血休克',
+  'Symbiosis': '共生',
+  'The Trap': '標記陷阱',
+  'Transfusion': '輸血',
+  'Unnerve': '頹喪',
+};
+
 /** 一般天賦 / Base talents, each confirmed against its values in `data/`. */
 const GEAR: Record<string, string> = {
   // 攻擊 / Offensive
@@ -134,7 +187,7 @@ const GEAR: Record<string, string> = {
  * variants of ordinary talents — the same talent with the source's parenthesised
  * values. The Chinese name is derived rather than listed twice.
  */
-export const TALENT_ZH: Record<string, string> = { ...GEAR, ...WEAPON };
+export const TALENT_ZH: Record<string, string> = { ...GEAR, ...WEAPON, ...EXOTIC };
 
 export function talentZh(name: string): string | undefined {
   const direct = TALENT_ZH[name];

@@ -9,7 +9,7 @@ import type { AttributeDef, AttributeSlotSpec, GameData, Value, Weapon, WeaponSl
 import { WEAPON_SLOTS } from '../model/types.ts';
 import type { SlotChoice } from '../model/build.ts';
 import { attributeIndex, defaultChoice, eligible, eligibleMods } from '../model/calc/index.ts';
-import { t, tQuality, tStat, tTalent, tWeaponSlot, tWeaponType } from '../i18n/index.ts';
+import { t, tQuality, tStat, tTalent, tWeapon, tWeaponSlot, tWeaponType } from '../i18n/index.ts';
 import { build, update } from './store.ts';
 import { clear, el, select } from './dom.ts';
 
@@ -26,7 +26,7 @@ function weaponOptions(data: GameData, slot: WeaponSlot): [string, string][] {
   return data.weapons
     .filter((w) => fits(w, slot))
     .sort((a, b) => rank(a) - rank(b) || a.weaponType.localeCompare(b.weaponType) || a.name.localeCompare(b.name))
-    .map((w) => [w.id, `[${tWeaponType(w.weaponType)}] ${w.name}`]);
+    .map((w) => [w.id, `[${tWeaponType(w.weaponType)}] ${tWeapon(w.name)}`]);
 }
 
 /** The choices a freshly equipped weapon starts with: fixed slots decided, rest empty. */
