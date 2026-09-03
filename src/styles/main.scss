@@ -51,7 +51,17 @@ button.ghost {
   @media (max-width: 900px) { grid-template-columns: 1fr; }
 }
 
-.gear-col { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); align-content: start; }
+.gear-col { display: grid; gap: .75rem; align-content: start; }
+
+// 兩欄，橫向配對 / Two columns reading across, as the game pairs the slots.
+.gear-col:not(.weapon-col) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+// 三個武器槽並排 / The three weapons sit side by side.
+.weapon-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 780px) {
+  .gear-col:not(.weapon-col), .weapon-col { grid-template-columns: 1fr; }
+}
 .build-col { display: grid; gap: 1rem; align-content: start; }
 
 .col-heading {

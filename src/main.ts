@@ -31,9 +31,14 @@ const summaryCol = el('aside', { class: 'summary-col' });
 // its own container rather than sharing one and being wiped on every keystroke.
 const damage = el('div', { class: 'damage-col' });
 const summaryInner = el('div', { class: 'summary-inner' });
-buildCol.append(gearCol, el('h2', { class: 'col-heading' }, [t('weapons')]), weaponCol);
+
 summaryCol.append(damage, summaryInner);
-buildCol.append(specCol);
+
+// 遊戲內的排法 / Laid out the way the game does: watch across the top, then the
+// three weapons, then the six gear slots in pairs.
+const weaponHeading = el('h2', { class: 'col-heading' }, []);
+const gearHeading = el('h2', { class: 'col-heading' }, []);
+buildCol.append(weaponHeading, weaponCol, gearHeading, gearCol, specCol);
 layout.append(buildCol, summaryCol);
 app.append(header, banner, watch, layout, recommended);
 
@@ -48,6 +53,8 @@ function renderChrome() {
       }, [lang() === 'zh-tw' ? 'EN' : '中文']),
     ]),
   );
+  weaponHeading.replaceChildren(t('weapons'));
+  gearHeading.replaceChildren(t('gear'));
   banner.replaceChildren(
     el('span', {}, [t('dataBanner')]),
     el('a', { href: data.meta.sourceUrl, target: '_blank', rel: 'noopener' }, [data.meta.source]),

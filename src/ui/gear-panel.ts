@@ -1,6 +1,6 @@
 /** 裝備欄 / The six gear slot cards. */
 import type { AttributeDef, AttributeSlotSpec, GameData, GearItem, GearSlot, Value } from '../model/types.ts';
-import { GEAR_SLOTS } from '../model/types.ts';
+import { GEAR_LAYOUT } from '../model/types.ts';
 import type { SlotChoice } from '../model/build.ts';
 import { attributeIndex, defaultChoice, defaultChoicesFor, eligible } from '../model/calc/index.ts';
 import { t, tCategory, tItem, tQuality, tSet, tSlot, tStat, tTalent } from '../i18n/index.ts';
@@ -151,5 +151,5 @@ function categoryLabel(slug: string) {
 export function renderGearPanel(root: HTMLElement, data: GameData) {
   const attrs = attributeIndex(data);
   clear(root);
-  for (const slot of GEAR_SLOTS) root.append(slotCard(data, attrs, slot));
+  for (const slot of GEAR_LAYOUT) root.append(slotCard(data, attrs, slot));
 }

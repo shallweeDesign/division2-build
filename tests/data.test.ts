@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { TALENT_ZH, talentZh } from '../src/i18n/talents.ts';
-import { WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
+import { GEAR_LAYOUT, WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
 import { ITEM_ZH } from '../src/i18n/names.ts';
 const tItemName = (n: string) => ITEM_ZH[n] ?? n;
 import { readFileSync } from 'node:fs';
@@ -357,5 +357,17 @@ describe('exotic weapon names', () => {
       ...Object.values(data.gear).flat().map((i) => i.name),
     ]);
     for (const key of Object.keys(ITEM_ZH)) expect(real, key).toContain(key);
+  });
+});
+
+describe('gear layout', () => {
+  it('lays out every slot exactly once', () => {
+    // The display order is separate from the storage order, so it can drift
+    // from it — a slot dropped here would simply vanish from the page.
+    expect([...GEAR_LAYOUT].sort()).toEqual([...GEAR_SLOTS].sort());
+  });
+
+  it('pairs the slots across the two columns the way the game does', () => {
+    expect(GEAR_LAYOUT).toEqual(['mask', 'backpack', 'chest', 'gloves', 'holster', 'knees']);
   });
 });

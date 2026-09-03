@@ -7,6 +7,14 @@
 export const GEAR_SLOTS = ['mask', 'chest', 'backpack', 'gloves', 'holster', 'knees'] as const;
 export type GearSlot = (typeof GEAR_SLOTS)[number];
 
+/**
+ * 畫面排列順序 / The order the slots are laid out in, which is not the order
+ * they are stored in. Two columns read across as the game pairs them: mask
+ * beside backpack, chest beside gloves, holster beside knees.
+ */
+export const GEAR_LAYOUT: readonly GearSlot[] =
+  ['mask', 'backpack', 'chest', 'gloves', 'holster', 'knees'];
+
 export const WEAPON_SLOTS = ['primary', 'secondary', 'sidearm'] as const;
 export type WeaponSlot = (typeof WEAPON_SLOTS)[number];
 
