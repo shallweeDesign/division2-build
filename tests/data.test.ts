@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { TALENT_ZH, talentZh } from '../src/i18n/talents.ts';
 import { GEAR_LAYOUT, WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
 import { ITEM_ZH } from '../src/i18n/names.ts';
+import { applyRows, loadOverrides, parseCsv } from '../src/i18n/overrides.ts';
 const tItemName = (n: string) => ITEM_ZH[n] ?? n;
 import { readFileSync } from 'node:fs';
 import { GEAR_SLOTS } from '../src/model/types.ts';
@@ -369,5 +370,43 @@ describe('gear layout', () => {
 
   it('pairs the slots across the two columns the way the game does', () => {
     expect(GEAR_LAYOUT).toEqual(['mask', 'backpack', 'chest', 'gloves', 'holster', 'knees']);
+  });
+});
+
+describe('sheet overrides', () => {
+  it('parses quoted fields, embedded commas and doubled quotes', () => {
+    const rows = parseCsv('kind,key,zh-tw\r\nitem,"A, B","甲""乙"\r\n');
+    expect(rows[1]).toEqual(['item', 'A, B', '甲"乙']);
+  });
+
+  it('lays a sheet row over the built-in name', () => {
+    const before = ITEM_ZH['Robin'];
+    const r = applyRows(parseCsv('kind,key,zh-tw\nitem,Robin,測試名\n'));
+    expect(r.applied).toBe(1);
+    expect(ITEM_ZH['Robin']).toBe('測試名');
+    ITEM_ZH['Robin'] = before!;
+  });
+
+  it('ignores an empty cell rather than blanking a name', () => {
+    // Clearing a cell by accident must not wipe a name on the live site.
+    const before = ITEM_ZH['Robin'];
+    applyRows(parseCsv('kind,key,zh-tw\nitem,Robin,\n'));
+    expect(ITEM_ZH['Robin']).toBe(before);
+  });
+
+  it('reports an unrecognised kind instead of throwing', () => {
+    const r = applyRows(parseCsv('kind,key,zh-tw\nweapon,Robin,測試\n'));
+    expect(r.unknownKinds).toEqual(['weapon']);
+    expect(r.applied).toBe(0);
+  });
+
+  it('does nothing when the header is not the shape we expect', () => {
+    expect(applyRows(parseCsv('a,b\n1,2\n')).applied).toBe(0);
+    expect(applyRows([]).applied).toBe(0);
+  });
+
+  it('resolves to null rather than throwing when the sheet is unreachable', async () => {
+    expect(await loadOverrides('')).toBeNull();
+    expect(await loadOverrides('https://invalid.invalid/nope.csv')).toBeNull();
   });
 });

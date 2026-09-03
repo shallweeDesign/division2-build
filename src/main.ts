@@ -13,6 +13,7 @@ import { renderDamagePanel } from './ui/damage-panel.ts';
 import { renderSpecPanel } from './ui/spec-panel.ts';
 import { reset, subscribe } from './ui/store.ts';
 import { el } from './ui/dom.ts';
+import { loadOverrides } from './i18n/overrides.ts';
 
 const data = raw as unknown as GameData;
 
@@ -84,3 +85,10 @@ subscribe((scope) => {
 
 setLang(lang() as Lang);
 renderAll();
+
+// 線上譯名 / Names edited in the sheet arrive after the page is already up:
+// the fetch crosses to Google and is not worth a blank screen. If it lands,
+// re-render; if it does not, the built-in names are already what is showing.
+void loadOverrides().then((result) => {
+  if (result) renderAll();
+});

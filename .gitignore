@@ -2,3 +2,4 @@ node_modules/
 dist/
 src/data/generated/
 .DS_Store
+i18n-seed.csv

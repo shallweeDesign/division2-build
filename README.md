@@ -47,7 +47,30 @@ npm test         # 資料結構不變量 + 計算引擎規則 / invariants + eng
 npm run dev      # 開發伺服器 / dev server
 npm run build    # data + typecheck + vite build
 npm run deploy   # 建置並同步到 Pages 站台 / build and sync into the Pages site
+npm run i18n:seed # 匯出現有譯名成 CSV，用來初始化 Google Sheet
 ```
+
+## 線上改譯名 / Editing names in a sheet
+
+譯名可以放在 Google Sheet 上直接改，不必動程式碼也不必重新部署。
+建置進去的那份仍在，線上那份只是疊在上面。
+
+1. 建一個 Google Sheet，三欄：`kind` / `key` / `zh-tw`
+   - `kind` 只接受 `item`、`talent`、`stat` 三種
+   - `key` 是資料集裡的英文名（`Robin`、`Braced`、`weapon-damage`）
+2. `npm run i18n:seed` 產生 `i18n-seed.csv`，貼進去當起點（目前 279 列）
+3. 檔案 → 共用 → 發布到網路 → 選該工作表 → CSV，複製網址
+4. 把網址填進 `src/i18n/overrides.ts` 的 `SHEET_URL`，重新部署一次
+
+之後改 Sheet 的儲存格，重整網頁就會看到。
+
+**故意留的三道防線：** 空白儲存格會被忽略而不是把名字清空；
+抓不到、逾時或工作表被取消發布時，畫面維持建置進去的那份；
+`SHEET_URL` 留空就完全關閉這個機制。
+
+Names can live in a Google Sheet and be edited without a build or a deploy. The
+baked-in names still ship; the sheet is laid over them. An empty cell is ignored
+rather than applied, and any failure leaves the built-in names showing.
 
 `npm run deploy` 會**先清空**目標資料夾再複製。Vite 的資源檔名帶內容雜湊，
 直接覆蓋會把上一版的 bundle 永久留在站上——沒人引用卻仍被送出。

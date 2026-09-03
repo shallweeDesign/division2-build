@@ -10,7 +10,8 @@
     "build": "npm run data && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "deploy": "bash scripts/deploy.sh"
+    "deploy": "bash scripts/deploy.sh",
+    "i18n:seed": "tsx scripts/export-i18n.ts"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
