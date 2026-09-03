@@ -28,7 +28,7 @@ import { TALENT_ZH } from './talents.ts';
  * Empty disables the overlay entirely, which is the state to leave it in if
  * the sheet ever goes away.
  */
-export const SHEET_URL = '';
+export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT90rli4ZWC-uiz9b5vP5qBQr7A0nPfPf_uTtPLi0NxEpMgvPQLZlJ5BtvqS582pFZLgtBB2cvTGFcG/pub?output=csv';
 
 /** 放棄等待的時間 / Give up after this; the baked names are already on screen. */
 const TIMEOUT_MS = 6000;
