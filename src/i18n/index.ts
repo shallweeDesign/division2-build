@@ -2,6 +2,7 @@
 import { STAT_ZH } from './stats.ts';
 import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
 import { talentZh } from './talents.ts';
+import { SKILL_ZH } from './skills.ts';
 
 export type Lang = 'zh-tw' | 'en';
 
@@ -104,9 +105,19 @@ const UI = {
   pieces: { 'zh-tw': '件', en: 'pc' },
   needMore: { 'zh-tw': '再 {n} 件解鎖 {p} 件加成', en: '{n} more for the {p}-piece bonus' },
   capped: { 'zh-tw': '已達上限', en: 'capped' },
+  skills: { 'zh-tw': '技能', en: 'Skills' },
+  skillSlot: { 'zh-tw': '技能 {n}', en: 'Skill {n}' },
+  skillTier: { 'zh-tw': '技能階', en: 'Skill tier' },
+  skillTierWasted: { 'zh-tw': '超出 {n} 階，多出的黃色核心沒有作用', en: '{n} over the cap — those yellow cores do nothing' },
+  skillBonuses: { 'zh-tw': '技能加成', en: 'Skill bonuses' },
+  skillOnly: { 'zh-tw': '僅限此技能', en: 'This skill only' },
+  skillNoNumbers: {
+    'zh-tw': '資料來源沒有技能的基礎數值（傷害、持續時間、冷卻），所以這裡只列出配裝提供的技能階與加成，不推算技能最終數值。',
+    en: 'The data source has no base skill values (damage, duration, cooldown), so this lists the tier and bonuses your build provides rather than final skill numbers.',
+  },
   dataBanner: {
-    'zh-tw': '資料來源：div2hub/game-data (CC BY 4.0)。非官方資料，請以遊戲內實際數值為準。',
-    en: 'Data: div2hub/game-data (CC BY 4.0). Unofficial — verify against the game.',
+    'zh-tw': '資料來源：div2hub/game-data (CC BY 4.0)。遊戲內容版權屬 Ubisoft 與 Massive Entertainment。非官方資料，請以遊戲內實際數值為準。',
+    en: 'Data: div2hub/game-data (CC BY 4.0). Game content © Ubisoft and Massive Entertainment. Unofficial — verify against the game.',
   },
   slot: {
     mask: { 'zh-tw': '面罩', en: 'Mask' },
@@ -183,6 +194,12 @@ export const tStat = (statId: string, fallback: string) =>
 /** 品牌／套裝名 / Set name in the active language, falling back to English. */
 /** 武器名 / Weapon name; only exotics have a sourced Chinese name so far. */
 export const tWeapon = (name: string) => (current === 'zh-tw' ? ITEM_ZH[name] ?? name : name);
+
+/**
+ * 技能名 / Skill name in the active language. A variant with no entry of its
+ * own is left in English whole, rather than half-translated.
+ */
+export const tSkill = (name: string) => (current === 'zh-tw' ? SKILL_ZH[name] ?? name : name);
 
 export const tSet = (name: string) => (current === 'zh-tw' ? SET_ZH[name] ?? name : name);
 

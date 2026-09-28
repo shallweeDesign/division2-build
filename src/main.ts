@@ -11,6 +11,7 @@ import { renderWatchPanel } from './ui/watch-panel.ts';
 import { renderWeaponPanel } from './ui/weapon-panel.ts';
 import { renderDamagePanel } from './ui/damage-panel.ts';
 import { renderSpecPanel } from './ui/spec-panel.ts';
+import { renderSkillPanel } from './ui/skill-panel.ts';
 import { reset, subscribe } from './ui/store.ts';
 import { el } from './ui/dom.ts';
 import { loadOverrides } from './i18n/overrides.ts';
@@ -25,6 +26,7 @@ const layout = el('div', { class: 'layout' });
 const gearCol = el('div', { class: 'gear-col' });
 const weaponCol = el('div', { class: 'gear-col weapon-col' });
 const buildCol = el('div', { class: 'build-col' });
+const skillCol = el('div', { class: 'skill-col' });
 const specCol = el('div', { class: 'spec-col' });
 const watch = el('div', { class: 'watch-col' });
 const summaryCol = el('aside', { class: 'summary-col' });
@@ -39,7 +41,7 @@ summaryCol.append(damage, summaryInner);
 // three weapons, then the six gear slots in pairs.
 const weaponHeading = el('h2', { class: 'col-heading' }, []);
 const gearHeading = el('h2', { class: 'col-heading' }, []);
-buildCol.append(weaponHeading, weaponCol, gearHeading, gearCol, specCol);
+buildCol.append(weaponHeading, weaponCol, gearHeading, gearCol, skillCol, specCol);
 layout.append(buildCol, summaryCol);
 app.append(header, banner, watch, layout, recommended);
 
@@ -69,6 +71,7 @@ function renderAll() {
   renderWeaponPanel(weaponCol, data);
   renderWatchPanel(watch, data);
   renderSpecPanel(specCol, data);
+  renderSkillPanel(skillCol, data);
   renderDamagePanel(damage, data);
   renderSummaryPanel(summaryInner, data);
   renderRecommendedPanel(recommended, data);
@@ -79,6 +82,10 @@ subscribe((scope) => {
   // fires on every keystroke inside it, and replacing the input would drop the
   // caret. Its own state is already what the player just typed.
   if (scope === 'gear') { renderGearPanel(gearCol, data); renderWeaponPanel(weaponCol, data); renderWatchPanel(watch, data); renderSpecPanel(specCol, data); }
+  // Skills re-render on both: a yellow core changes the tier, and picking one
+  // skill greys its parent out of the other slot. Only selects live there, so
+  // nothing loses a caret.
+  renderSkillPanel(skillCol, data);
   renderDamagePanel(damage, data);
   renderSummaryPanel(summaryInner, data);
 });

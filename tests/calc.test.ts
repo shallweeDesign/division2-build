@@ -11,6 +11,7 @@ import { WATCH_STAT_IDS, WATCH_STATS } from '../src/model/watch.ts';
 import { resolveRecommended } from '../src/model/calc/recommend.ts';
 import { RECOMMENDED } from '../src/data/recommended.ts';
 import { HEADSHOT_CRIT, typeDamageStat, weaponDamage } from '../src/model/calc/damage.ts';
+import { computeSkills, SKILL_SPECIFIC, SKILL_STAT_IDS } from '../src/model/calc/skills.ts';
 
 const data: GameData = JSON.parse(readFileSync(new URL('../src/data/generated/game-data.json', import.meta.url), 'utf8'));
 const attrs = attributeIndex(data);
@@ -567,5 +568,70 @@ describe('damage', () => {
     const d = of(bare());
     expect(d.withBuild.dps.burst).toBeGreaterThan(d.withBuild.dps.sustained);
     expect(d.withBuild.dps.damagePerMag).toBeCloseTo(d.withBuild.dps.averageShot * rifle.magSize!, 3);
+  });
+});
+
+describe('skills', () => {
+  const SKILL_BRAND = 'Hana-U Corporation';
+
+  it('starts with two empty slots, tier 0 and every bonus listed at zero', () => {
+    const r = computeSkills(data, emptyBuild());
+    expect(r.equipped).toEqual([null, null]);
+    expect(r.tier).toEqual({ value: 0, raw: 0, wasted: 0 });
+    expect(r.stats.map((s) => s.statId)).toEqual([...SKILL_STAT_IDS]);
+    expect(r.stats.every((s) => s.value === 0)).toBe(true);
+  });
+
+  it('reaches tier six from six yellow cores, and reports what goes past it', () => {
+    const build = emptyBuild();
+    for (const slot of GEAR_SLOTS) equip(build, slot, SKILL_BRAND);
+    expect(computeSkills(data, build).tier).toEqual({ value: 6, raw: 6, wasted: 0 });
+
+    // A proto-quality core rolls 1.5 tiers; the half over the cap is lost.
+    const core = data.attributes.find((a) => a.id === 'skill-tier-gear-core')!;
+    build.gear.mask.cores[0] = { attributeId: core.id, value: { n: 1.5, percent: false } };
+    expect(computeSkills(data, build).tier).toEqual({ value: 6, raw: 6.5, wasted: 0.5 });
+  });
+
+  it('carries the build\'s skill bonuses through from gear and brand sets', () => {
+    const build = emptyBuild();
+    for (const slot of GEAR_SLOTS.slice(0, 2)) equip(build, slot, SKILL_BRAND);
+    const fromSummary = computeBuild(data, build).stats.find((s) => s.statId === 'skill-haste')!;
+    const fromSkills = computeSkills(data, build).stats.find((s) => s.statId === 'skill-haste')!;
+    expect(fromSkills.value).toBeGreaterThan(0);
+    expect(fromSkills.value).toBe(fromSummary.value);
+  });
+
+  it('shows a skill-only stat for that skill and no other', () => {
+    const build = emptyBuild();
+    build.skills = ['Bulwark Shield', 'Remote Pulse'];
+    let r = computeSkills(data, build);
+    expect(r.equipped[0]!.specific.map((s) => s.statId)).toEqual(['shield-health']);
+    expect(r.equipped[1]!.specific).toEqual([]);
+
+    // Scanner Pulse Haste names one variant, not the whole Pulse family.
+    build.skills = [null, 'Scanner Pulse'];
+    r = computeSkills(data, build);
+    expect(r.equipped[0]).toBeNull();
+    expect(r.equipped[1]!.specific.map((s) => s.statId)).toEqual(['scanner-pulse-haste']);
+  });
+
+  it('warns when both slots hold the same skill', () => {
+    const build = emptyBuild();
+    build.skills = ['Assault Turret', 'Sniper Turret'];
+    expect(computeSkills(data, build).warnings).toHaveLength(1);
+    build.skills = ['Assault Turret', 'Striker Drone'];
+    expect(computeSkills(data, build).warnings).toEqual([]);
+  });
+
+  it('names only stats and skills the dataset actually has', () => {
+    const statIds = new Set(data.stats.map((s) => s.id));
+    for (const id of [...SKILL_STAT_IDS, ...Object.keys(SKILL_SPECIFIC)]) expect(statIds.has(id), id).toBe(true);
+    const parents = new Set(data.skills.map((v) => v.skill));
+    const variants = new Set(data.skills.map((v) => v.name));
+    for (const [id, m] of Object.entries(SKILL_SPECIFIC)) {
+      if (m.skill) expect(parents.has(m.skill), id).toBe(true);
+      if (m.variant) expect(variants.has(m.variant), id).toBe(true);
+    }
   });
 });

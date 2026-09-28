@@ -149,6 +149,42 @@ select, input[type="number"] {
   .spec-innate li { margin-bottom: .12rem; }
 }
 
+// 技能 / Two skill pickers, the tier the yellow cores reach, and the bonuses.
+.skills {
+  h3 {
+    margin: 1rem 0 .35rem; font-size: .8rem; letter-spacing: .06em;
+    text-transform: uppercase; color: $accent; font-weight: 500;
+  }
+
+  .skill-slots { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  @media (max-width: 780px) { .skill-slots { grid-template-columns: 1fr; } }
+  .skill-slot { display: grid; gap: .3rem; align-content: start; }
+  .skill-label { font-size: .72rem; color: $muted; letter-spacing: .04em; }
+  .skill-slot select { width: 100%; }
+
+  .skill-tier {
+    display: flex; align-items: center; gap: .6rem;
+    margin-top: .9rem; font-size: .85rem;
+    strong { margin-left: auto; font-variant-numeric: tabular-nums; color: $skill; }
+  }
+  .skill-pips { display: flex; gap: .25rem; }
+  .skill-pip {
+    width: .9rem; height: .45rem; border: 1px solid $skill; opacity: .35;
+    &.is-on { background: $skill; opacity: 1; }
+  }
+  .skill-wasted { margin: .35rem 0 0; font-size: .78rem; color: $warn; }
+
+  .skill-stats, .skill-specific { list-style: none; margin: 0; padding: 0; font-size: .82rem; }
+  .skill-stats li, .skill-specific li {
+    display: flex; justify-content: space-between; gap: .5rem; padding: .16rem 0;
+    strong { color: $skill; font-weight: 500; font-variant-numeric: tabular-nums; }
+  }
+  // A bonus the build has none of is still listed, so the gap is visible.
+  li.is-zero { color: $muted; strong { color: $muted; } }
+  .skill-specific { margin-top: .2rem; padding-left: .5rem; border-left: 1px solid $line; font-size: .78rem; }
+  .skill-note { margin: .8rem 0 0; font-size: .74rem; line-height: 1.5; }
+}
+
 // 傷害面板 / Damage: base against build, then the eight cells.
 .damage {
   .dmg-tabs { display: flex; gap: .25rem; margin-bottom: .6rem; flex-wrap: wrap; }

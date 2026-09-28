@@ -60,7 +60,15 @@ export interface BuildState {
    * what the summary and the totals care about.
    */
   spec: { id: SpecializationId | null; talents: string[] };
+  /**
+   * 技能 / The two skills, by variant name (`null` while empty). Always two
+   * entries, positional, so the panel can render both without guarding.
+   */
+  skills: (string | null)[];
 }
+
+/** 技能槽數 / A build carries two skills. */
+export const SKILL_SLOTS = 2;
 
 export const emptyWatch = (): Record<string, number> =>
   Object.fromEntries(WATCH_STAT_IDS.map((id) => [id, 0]));
@@ -72,4 +80,5 @@ export const emptyBuild = (): BuildState => ({
   weapons: Object.fromEntries(WEAPON_SLOTS.map((s) => [s, emptyWeapon()])) as Record<WeaponSlot, WeaponSlotState>,
   watch: emptyWatch(),
   spec: { id: null, talents: [] },
+  skills: Array.from({ length: SKILL_SLOTS }, () => null),
 });

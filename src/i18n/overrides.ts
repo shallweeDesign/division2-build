@@ -22,6 +22,7 @@
 import { ITEM_ZH } from './names.ts';
 import { STAT_ZH } from './stats.ts';
 import { TALENT_ZH } from './talents.ts';
+import { SKILL_ZH } from './skills.ts';
 
 /**
  * 試算表網址 / The published sheet, as `File → Share → Publish to web → CSV`.
@@ -37,6 +38,7 @@ const TARGETS: Record<string, Record<string, string>> = {
   item: ITEM_ZH,
   talent: TALENT_ZH,
   stat: STAT_ZH,
+  skill: SKILL_ZH,
 };
 
 /**

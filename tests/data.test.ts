@@ -8,6 +8,7 @@ import { TALENT_ZH, talentZh } from '../src/i18n/talents.ts';
 import { GEAR_LAYOUT, WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
 import { ITEM_ZH } from '../src/i18n/names.ts';
 import { applyRows, loadOverrides, parseCsv } from '../src/i18n/overrides.ts';
+import { SKILL_ZH } from '../src/i18n/skills.ts';
 const tItemName = (n: string) => ITEM_ZH[n] ?? n;
 import { readFileSync } from 'node:fs';
 import { GEAR_SLOTS } from '../src/model/types.ts';
@@ -143,9 +144,12 @@ describe('weapons', () => {
 
   it('gives every weapon positive damage and rate of fire, except registered gaps', () => {
     const gapped = data.weapons.filter((w) => w.baseDamage === null || w.rpm === null).map((w) => w.name);
-    expect(gapped, 'weapons missing stats must be covered by known_gaps.json').toEqual(['Steel & Sons ACR']);
+    expect(gapped, 'weapons missing stats must be covered by known_gaps.json').toEqual([]);
+    // The Cooler fires water at allies; zero damage is the real value, not a gap.
+    const harmless = ['Cooler'];
     for (const w of data.weapons.filter((x) => x.baseDamage !== null)) {
-      expect(w.baseDamage!, w.name).toBeGreaterThan(0);
+      if (harmless.includes(w.name)) expect(w.baseDamage, w.name).toBe(0);
+      else expect(w.baseDamage!, w.name).toBeGreaterThan(0);
       expect(w.rpm!, w.name).toBeGreaterThan(0);
     }
   });
@@ -392,6 +396,13 @@ describe('sheet overrides', () => {
     const before = ITEM_ZH['Robin'];
     applyRows(parseCsv('kind,key,zh-tw\nitem,Robin,\n'));
     expect(ITEM_ZH['Robin']).toBe(before);
+  });
+
+  it('takes skill names from the sheet, since none are built in', () => {
+    const r = applyRows(parseCsv('kind,key,zh-tw\nskill,Assault Turret,測試砲塔\n'));
+    expect(r.applied).toBe(1);
+    expect(SKILL_ZH['Assault Turret']).toBe('測試砲塔');
+    delete SKILL_ZH['Assault Turret'];
   });
 
   it('reports an unrecognised kind instead of throwing', () => {
