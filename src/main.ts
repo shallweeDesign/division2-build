@@ -12,9 +12,11 @@ import { renderWeaponPanel } from './ui/weapon-panel.ts';
 import { renderDamagePanel } from './ui/damage-panel.ts';
 import { renderSpecPanel } from './ui/spec-panel.ts';
 import { renderSkillPanel } from './ui/skill-panel.ts';
+import { renderLootPanel } from './ui/loot-panel.ts';
 import { reset, subscribe } from './ui/store.ts';
 import { el } from './ui/dom.ts';
 import { loadOverrides } from './i18n/overrides.ts';
+import { LOOT_PAGE } from './model/loot.ts';
 
 const data = raw as unknown as GameData;
 
@@ -43,13 +45,32 @@ const weaponHeading = el('h2', { class: 'col-heading' }, []);
 const gearHeading = el('h2', { class: 'col-heading' }, []);
 buildCol.append(weaponHeading, weaponCol, gearHeading, gearCol, skillCol, specCol);
 layout.append(buildCol, summaryCol);
-app.append(header, banner, watch, layout, recommended);
+// 兩個頁面 / Two pages behind a hash route, so `#loot` can be bookmarked and
+// shared. The build page's nodes are kept alive while hidden: re-creating them
+// would lose nothing in the store, but would throw away scroll and focus.
+const buildPage = el('div', { class: 'page page-build' });
+buildPage.append(banner, watch, layout, recommended);
+const lootBanner = el('p', { class: 'data-banner' });
+const lootRoot = el('div', { class: 'loot' });
+const lootPage = el('div', { class: 'page page-loot' });
+lootPage.append(lootBanner, lootRoot);
+app.append(header, buildPage, lootPage);
+
+type Page = 'build' | 'loot';
+const currentPage = (): Page => (location.hash === '#loot' ? 'loot' : 'build');
 
 function renderChrome() {
+  const page = currentPage();
+  const tab = (target: Page, label: string) => el('a', {
+    class: `tab${page === target ? ' active' : ''}`,
+    href: target === 'loot' ? '#loot' : '#',
+    'aria-current': page === target ? 'page' : undefined,
+  }, [label]);
   header.replaceChildren(
     el('h1', {}, [t('title')]),
+    el('nav', { class: 'tabs' }, [tab('build', t('navBuild')), tab('loot', t('navLoot'))]),
     el('div', { class: 'header-actions' }, [
-      el('button', { class: 'ghost', onclick: () => reset() }, [t('clear')]),
+      page === 'build' ? el('button', { class: 'ghost', onclick: () => reset() }, [t('clear')]) : null,
       el('button', {
         class: 'ghost',
         onclick: () => { setLang(lang() === 'zh-tw' ? 'en' : 'zh-tw'); renderAll(); },
@@ -62,11 +83,25 @@ function renderChrome() {
     el('span', {}, [t('dataBanner')]),
     el('a', { href: data.meta.sourceUrl, target: '_blank', rel: 'noopener' }, [data.meta.source]),
   );
+  lootBanner.replaceChildren(
+    el('span', {}, [t('lootBanner')]),
+    el('a', { href: LOOT_PAGE, target: '_blank', rel: 'noopener' }, ['Raigulus']),
+  );
   document.title = t('title');
 }
 
+function showPage() {
+  const page = currentPage();
+  buildPage.hidden = page !== 'build';
+  lootPage.hidden = page !== 'loot';
+  if (page === 'loot') renderLootPanel(lootRoot);
+}
+
+window.addEventListener('hashchange', () => { renderChrome(); showPage(); window.scrollTo(0, 0); });
+
 function renderAll() {
   renderChrome();
+  showPage();
   renderGearPanel(gearCol, data);
   renderWeaponPanel(weaponCol, data);
   renderWatchPanel(watch, data);
