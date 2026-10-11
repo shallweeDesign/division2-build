@@ -147,6 +147,12 @@ const UI = {
     named: { 'zh-tw': '具名武器', en: 'Named' },
     regular: { 'zh-tw': '一般武器', en: 'Regular' },
   },
+  detailGearSlot: { 'zh-tw': '裝備部位', en: 'Gear slot' },
+  detailPieceCount: { 'zh-tw': '共 {n} 件', en: '{n} pieces' },
+  detailGearTier: {
+    exotic: { 'zh-tw': '奇特裝備', en: 'Exotic' },
+    named: { 'zh-tw': '具名裝備', en: 'Named' },
+  },
   detailExoticTag: { 'zh-tw': '奇特', en: 'Exotic' },
   detailRpm: { 'zh-tw': '射速', en: 'RPM' },
   detailClose: { 'zh-tw': '關閉', en: 'Close' },
@@ -238,6 +244,7 @@ export const tWeaponType = (name: string) =>
   (name in UI.weaponType ? pick(UI.weaponType[name as keyof typeof UI.weaponType]) : name);
 export const tQuality = (q: keyof typeof UI.quality) => pick(UI.quality[q]);
 export const tCategory = (c: keyof typeof UI.category) => pick(UI.category[c]);
+export const tGearTier = (k: keyof typeof UI.detailGearTier) => pick(UI.detailGearTier[k]);
 export const tDetailTier = (k: keyof typeof UI.detailTier) => pick(UI.detailTier[k]);
 export const tFocus = (f: keyof typeof UI.focus) => pick(UI.focus[f]);
 

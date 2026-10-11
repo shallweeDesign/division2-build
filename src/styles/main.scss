@@ -556,9 +556,13 @@ $exotic: #ff4f3a;
 .d-weapons { background: $panel; border: 1px solid $line; }
 .d-weapon {
   .d-weapon-numbers { display: block; margin-top: .15rem; color: $muted; font-size: .74rem; font-weight: 400; font-variant-numeric: tabular-nums; }
-  &.named .d-piece-name { color: $skill; font-weight: 600; }
-  &.exotic .d-piece-name { color: $exotic; font-weight: 600; }
-  &.exotic .d-tag { border-color: rgba($exotic, .5); }
-  &.exotic .d-piece-talent { border-left-color: rgba($exotic, .6); }
 }
+// 奇特 / Exotic gear and weapons alike, in red.
+.d-piece.exotic {
+  .d-piece-name { color: $exotic; font-weight: 600; }
+  .d-tag { border-color: rgba($exotic, .5); }
+  .d-piece-talent { border-left-color: rgba($exotic, .6); }
+}
+.d-weapon.named .d-piece-name { color: $skill; font-weight: 600; }
+.d-piece-set { display: block; margin-top: .15rem; color: $muted; font-size: .74rem; font-weight: 400; }
 .d-piece.named .d-piece-talent { border-left-color: rgba($skill, .6); }

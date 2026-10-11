@@ -3,17 +3,20 @@
  *
  * A brand or gear set shows its bonus tiers, its chest/backpack talents and
  * every piece by slot. A weapon class shows every weapon it can drop —
- * exotics, then named, then regular. Named and exotic items are picked out in
+ * exotics, then named, then regular. A gear slot shows its exotic and named
+ * pieces. Named and exotic items are picked out in
  * their own colours, and every fixed talent is shown with its full wording.
  *
  * A native `<dialog>`: Esc closes it, focus is trapped and restored, and the
  * backdrop dims the page without any of that being written here.
  */
-import { lang, t, tDetailTier, tItem, tSet, tSlot, tStat, tTalent, tWeapon, tWeaponType } from '../i18n/index.ts';
+import { lang, t, tDetailTier, tGearTier, tItem, tSet, tSlot, tStat, tTalent, tWeapon, tWeaponType } from '../i18n/index.ts';
 import type { Category, Value } from '../model/types.ts';
 import { setDetail } from '../model/set-detail.ts';
 import type { CoreView, MinorView, PieceView, SetData, SetDetail } from '../model/set-detail.ts';
 import { weaponClassOf, weaponDetail } from '../model/weapon-detail.ts';
+import { gearSlotDetail, gearSlotOf } from '../model/gear-slot-detail.ts';
+import type { GearSlotDetail } from '../model/gear-slot-detail.ts';
 import type { WeaponDetail, WeaponView } from '../model/weapon-detail.ts';
 import { el } from './dom.ts';
 
@@ -61,11 +64,34 @@ function parts(data: SetData) {
       description ? el('p', {}, [description]) : null,
     ]);
 
-  return { stat, core, minor, talentBlock };
+  /**
+   * 裝備列 / One gear piece. Named pieces in gold, exotics in red; `showSet`
+   * adds the brand or set a piece belongs to, for lists that mix them.
+   */
+  const pieceRow = (p: PieceView, setName: string | null, showSet = false) => {
+    const tier = p.item.isExotic ? 'exotic' : p.item.isNamed ? 'named' : '';
+    return el('li', { class: `d-piece ${tier}`.trim() }, [
+      el('div', { class: 'd-piece-name' }, [
+        ...bilingual(tItem(p.item.name, p.item.slot, setName), p.item.name),
+        p.item.isExotic ? el('span', { class: 'd-tag' }, [t('detailExoticTag')])
+          : p.item.isNamed ? el('span', { class: 'd-tag' }, [t('detailNamed')]) : null,
+        showSet && setName ? el('span', { class: 'd-piece-set' }, [tSet(setName)]) : null,
+      ]),
+      el('div', { class: 'd-piece-cores' }, p.cores.map(core)),
+      el('div', { class: 'd-piece-attrs' }, p.minors.map(minor)),
+      el('div', { class: 'd-piece-extra' }, [
+        p.talent && !p.talent.fixed ? el('span', { class: 'd-attr random' }, [t('detailTalentChoice')]) : null,
+        p.mods ? el('span', { class: 'd-mods' }, [fill(t('detailMods'), { n: String(p.mods) })]) : null,
+      ]),
+      p.talent?.fixed ? talentBlock(p.talent.name, p.talent.description, 'd-talent d-piece-talent') : null,
+    ]);
+  };
+
+  return { stat, core, minor, talentBlock, pieceRow };
 }
 
 function renderSet(d: SetDetail, data: SetData) {
-  const { stat, core, minor, talentBlock } = parts(data);
+  const { stat, talentBlock, pieceRow } = parts(data);
 
   // 套裝效果 / Bonus tiers, then (gear sets only) the chest and backpack talents.
   const tierRows = d.tiers.map((tier) => el('tr', {}, [
@@ -81,20 +107,6 @@ function renderSet(d: SetDetail, data: SetData) {
     el('td', {}, [talentBlock(st.name, st.description)]),
   ]));
 
-  const pieceRow = (p: PieceView) => el('li', { class: `d-piece${p.item.isNamed ? ' named' : ''}` }, [
-    el('div', { class: 'd-piece-name' }, [
-      ...bilingual(tItem(p.item.name, p.item.slot, d.set.name), p.item.name),
-      p.item.isNamed ? el('span', { class: 'd-tag' }, [t('detailNamed')]) : null,
-    ]),
-    el('div', { class: 'd-piece-cores' }, p.cores.map(core)),
-    el('div', { class: 'd-piece-attrs' }, p.minors.map(minor)),
-    el('div', { class: 'd-piece-extra' }, [
-      p.talent && !p.talent.fixed ? el('span', { class: 'd-attr random' }, [t('detailTalentChoice')]) : null,
-      p.mods ? el('span', { class: 'd-mods' }, [fill(t('detailMods'), { n: String(p.mods) })]) : null,
-    ]),
-    p.talent?.fixed ? talentBlock(p.talent.name, p.talent.description, 'd-talent d-piece-talent') : null,
-  ]);
-
   return [
     el('section', { class: 'd-section' }, [
       el('h3', { class: 'col-heading' }, [t('detailBonuses')]),
@@ -104,10 +116,20 @@ function renderSet(d: SetDetail, data: SetData) {
       el('h3', { class: 'col-heading' }, [t('detailItems')]),
       el('div', { class: 'd-slots' }, d.pieces.map(({ slot, items }) => el('div', { class: 'd-slot' }, [
         el('div', { class: 'd-slot-name' }, [tSlot(slot)]),
-        el('ul', { class: 'd-pieces' }, items.map(pieceRow)),
+        el('ul', { class: 'd-pieces' }, items.map((p) => pieceRow(p, d.set.name))),
       ]))),
     ]),
   ];
+}
+
+function renderGearSlot(d: GearSlotDetail, data: SetData) {
+  const { pieceRow } = parts(data);
+  return d.groups.map((g) => el('section', { class: 'd-section' }, [
+    el('h3', { class: `col-heading d-tier-heading ${g.tier}` }, [
+      `${tGearTier(g.tier)} (${g.pieces.length})`,
+    ]),
+    el('ul', { class: 'd-pieces d-weapons' }, g.pieces.map(({ piece, setName }) => pieceRow(piece, setName, true))),
+  ]));
 }
 
 function renderWeapons(d: WeaponDetail, data: SetData) {
@@ -168,6 +190,19 @@ export function openLootDetail(name: string) {
     body.replaceChildren(...nodes.filter((n): n is HTMLElement => n !== null));
 
   preloadLootData().then((data) => {
+    if (gearSlotOf(name)) {
+      const d = gearSlotDetail(data, name)!;
+      const total = d.groups.reduce((n, g) => n + g.pieces.length, 0);
+      heading.replaceChildren(
+        el('h2', {}, [tSlot(d.slot)]),
+        el('div', { class: 'd-meta' }, [
+          el('span', { class: 'pill weapon' }, [t('detailGearSlot')]),
+          el('span', { class: 'd-count' }, [fill(t('detailPieceCount'), { n: String(total) })]),
+        ]),
+      );
+      show([...renderGearSlot(d, data), note()]);
+      return;
+    }
     if (weaponClassOf(name)) {
       const d = weaponDetail(data, name)!;
       const total = d.groups.reduce((n, g) => n + g.weapons.length, 0);

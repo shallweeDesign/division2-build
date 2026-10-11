@@ -81,25 +81,26 @@ export function findSet(data: SetData, name: string): SetDef | null {
   return data.sets.find((s) => normName(s.name) === key) ?? null;
 }
 
-export function setDetail(data: SetData, name: string): SetDetail | null {
-  const set = findSet(data, name);
-  if (!set) return null;
-
+/**
+ * 單件裝備 / Builds a piece's view: fixed attributes at their roll, a core
+ * choice shown as `set`'s default core (an exotic with a core choice has no
+ * set, so no default to show), and the talent with its wording.
+ */
+export function pieceViewFor(data: SetData) {
   const cats = categoryIndex(data.attributes);
   const talentText = new Map(data.gearTalents.map((t) => [t.name, t.description || null]));
   const cat = (statId: string | null) => (statId ? cats.get(statId) ?? null : null);
   const fixedLine = fixedLineFor(data.attributes);
 
-  const piece = (item: GearItem): PieceView => ({
+  return (item: GearItem, set: SetDef | null): PieceView => ({
     item,
     cores: item.cores.flatMap((c): CoreView[] => {
       if (c.mode === 'fixed') {
         const line = fixedLine(c.attributeId, c.value);
         return line ? [{ fixed: true, ...line }] : [];
       }
-      return c.mode === 'choice'
-        ? [{ fixed: false, statId: set.defaultCoreStatId, category: cat(set.defaultCoreStatId) }]
-        : [];
+      const core = set?.defaultCoreStatId ?? null;
+      return c.mode === 'choice' ? [{ fixed: false, statId: core, category: cat(core) }] : [];
     }),
     minors: item.minors.flatMap((m): MinorView[] => {
       if (m.mode === 'fixed') {
@@ -114,6 +115,17 @@ export function setDetail(data: SetData, name: string): SetDetail | null {
         ? { fixed: true, name: item.talent.name, description: talentText.get(item.talent.name) ?? null }
         : { fixed: false },
   });
+}
+
+export function setDetail(data: SetData, name: string): SetDetail | null {
+  const set = findSet(data, name);
+  if (!set) return null;
+
+  const cats = categoryIndex(data.attributes);
+  const talentText = new Map(data.gearTalents.map((t) => [t.name, t.description || null]));
+  const cat = (statId: string | null) => (statId ? cats.get(statId) ?? null : null);
+  const pieceView = pieceViewFor(data);
+  const piece = (item: GearItem) => pieceView(item, set);
 
   const owns = (i: GearItem) => (set.kind === 'brand' ? i.brandSet : i.gearSet) === set.name;
 

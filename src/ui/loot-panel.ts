@@ -2,6 +2,7 @@
 import { lang, t } from '../i18n/index.ts';
 import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../i18n/loot.ts';
 import { weaponClassOf } from '../model/weapon-detail.ts';
+import { gearSlotOf } from '../model/gear-slot-detail.ts';
 import { LOOT_PAGE, isStale, loadLoot, localClock, localDate, nextReset } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
 import { el } from './dom.ts';
@@ -53,10 +54,10 @@ function target(loot: string) {
   return detailButton(loot, name(loot, lootZh), localName(loot, lootZh), 'loot-target');
 }
 
-/** 補給箱內容 / Weapons in a vendor cache open the weapon list; gear stays text. */
+/** 補給箱內容 / A cache opens the weapon class, or the gear slot's exotic and named pieces. */
 function cacheItem(item: string) {
   const label = el('strong', {}, [name(item, cacheItemZh)]);
-  return weaponClassOf(item) ? detailButton(item, label, localName(item, cacheItemZh), 'loot-cache-btn') : label;
+  return weaponClassOf(item) || gearSlotOf(item) ? detailButton(item, label, localName(item, cacheItemZh), 'loot-cache-btn') : label;
 }
 
 function renderSnapshot(snap: LootSnapshot) {
