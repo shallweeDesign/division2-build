@@ -98,9 +98,9 @@ export function nextReset(now = new Date()): Date {
 export const localClock = (d: Date) =>
   `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
-/** 是否同一個本地日 / Whether two instants share a calendar day on the reader's clock. */
-export const sameLocalDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+/** 本地日期 / `YYYY-MM-DD` on the reader's own calendar. */
+export const localDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 let cached: Promise<LootSnapshot | null> | null = null;
 

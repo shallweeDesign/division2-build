@@ -1,7 +1,7 @@
 /** 每日戰利品頁 / The daily loot page: today's rotation, read live. */
 import { lang, t } from '../i18n/index.ts';
 import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../i18n/loot.ts';
-import { DAILY_RESET_UTC_HOUR, LOOT_PAGE, isStale, loadLoot, localClock, nextReset, sameLocalDay } from '../model/loot.ts';
+import { LOOT_PAGE, isStale, loadLoot, localClock, localDate, nextReset } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
 import { el } from './dom.ts';
 
@@ -31,11 +31,8 @@ function renderSnapshot(snap: LootSnapshot) {
   const now = new Date();
   const reset = nextReset(now);
   const resetLocal = localClock(reset);
-  const resetUtc = `${String(DAILY_RESET_UTC_HOUR).padStart(2, '0')}:00`;
-  const next: (Node | string)[] = [
-    sameLocalDay(reset, now) ? resetLocal : fill(t('lootTomorrow'), { t: resetLocal }),
-    el('small', {}, [fill(t('lootResetDaily'), { t: resetUtc })]),
-  ];
+  // Same `YYYY-MM-DD` form as the date beside it, on the reader's own clock.
+  const next = [`${localDate(reset)} ${resetLocal}`];
 
   const notices: HTMLElement[] = [];
   if (isStale(snap, now)) {

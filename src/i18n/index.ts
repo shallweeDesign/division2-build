@@ -130,8 +130,6 @@ const UI = {
   lootRotation: { 'zh-tw': '輪替', en: 'Rotation' },
   lootChecked: { 'zh-tw': '最後檢查', en: 'Last checked' },
   lootNext: { 'zh-tw': '下次更新', en: 'Next update' },
-  lootTomorrow: { 'zh-tw': '明天 {t}', en: 'Tomorrow {t}' },
-  lootResetDaily: { 'zh-tw': '本地時間・每日 {t} UTC 重置', en: 'Your time · daily reset at {t} UTC' },
   lootLoading: { 'zh-tw': '讀取今日資料中…', en: 'Loading today’s rotation…' },
   lootFailed: {
     'zh-tw': '無法取得今日資料，可能是來源暫時無法連線。可以直接到來源網站查看：',

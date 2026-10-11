@@ -1,6 +1,6 @@
 /** 每日戰利品 / Parsing the Raigulus snapshot and naming what it lists. */
 import { describe, expect, it } from 'vitest';
-import { isStale, localClock, nextReset, parseLoot, rotationDate } from '../src/model/loot.ts';
+import { isStale, localClock, localDate, nextReset, parseLoot, rotationDate } from '../src/model/loot.ts';
 import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../src/i18n/loot.ts';
 import { applyRows } from '../src/i18n/overrides.ts';
 
@@ -89,6 +89,11 @@ describe('dates and times', () => {
     const hhmm = `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
     expect(localClock(at)).toBe(hhmm);
     if (offsetMin === 480) expect(localClock(at)).toBe('16:00');
+  });
+
+  it('dates the next reset on the local calendar', () => {
+    const at = new Date(2026, 9, 12, 16, 0);                  // local time
+    expect(`${localDate(at)} ${localClock(at)}`).toBe('2026-10-12 16:00');
   });
 });
 
