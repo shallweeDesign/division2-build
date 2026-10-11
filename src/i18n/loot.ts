@@ -63,8 +63,6 @@ function lookup(map: Record<string, string>, name: string): string | undefined {
 /** 目標戰利品名 / A loot target is a brand, a gear set, a weapon class, or now and then an item. */
 export const lootZh = (name: string) =>
   lookup(SET_ZH, name) ?? lookup(ITEM_ZH, name) ?? lookup(LOOT_TYPE_ZH, name);
-/** 武器類別目標 / A weapon-class target has no set behind it to show. */
-export const isWeaponClass = (name: string) => lookup(LOOT_TYPE_ZH, name) !== undefined;
 export const missionZh = (name: string) => lookup(MISSION_ZH, name);
 export const cacheTypeZh = (name: string) => lookup(CACHE_TYPE_ZH, name);
 export const cacheItemZh = (name: string) => lookup(CACHE_ITEM_ZH, name);

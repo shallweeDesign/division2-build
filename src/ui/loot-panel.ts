@@ -1,6 +1,7 @@
 /** 每日戰利品頁 / The daily loot page: today's rotation, read live. */
 import { lang, t } from '../i18n/index.ts';
-import { cacheItemZh, cacheTypeZh, isWeaponClass, lootZh, missionZh } from '../i18n/loot.ts';
+import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../i18n/loot.ts';
+import { weaponClassOf } from '../model/weapon-detail.ts';
 import { LOOT_PAGE, isStale, loadLoot, localClock, localDate, nextReset } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
 import { el } from './dom.ts';
@@ -29,21 +30,33 @@ function meta(label: string, value: (Node | string)[]) {
 }
 
 /**
- * 目標戰利品 / A brand or gear set opens its detail popup; a weapon class has
- * no set behind it, so it stays plain text.
+ * 可點的戰利品 / A loot name that opens its detail popup: a brand or gear set
+ * shows its pieces, a weapon class every weapon it can drop.
  */
-function target(loot: string) {
-  if (isWeaponClass(loot)) return el('span', { class: 'loot-target' }, [name(loot, lootZh)]);
-  const label = lang() === 'zh-tw' ? lootZh(loot) ?? loot : loot;
+function detailButton(source: string, label: Node, title: string, cls = '') {
+  const preload = () => { void preloadLootData().catch(() => {}); };
   return el('button', {
-    class: 'loot-target loot-target-btn',
+    class: `loot-target-btn ${cls}`.trim(),
     type: 'button',
     'aria-haspopup': 'dialog',
-    title: fill(t('detailOpen'), { n: label }),
-    onclick: () => openLootDetail(loot),
-    onpointerenter: () => { void preloadLootData().catch(() => {}); },
-    onfocus: () => { void preloadLootData().catch(() => {}); },
-  }, [name(loot, lootZh), el('span', { class: 'loot-target-icon', 'aria-hidden': 'true' }, ['›'])]);
+    title: fill(t('detailOpen'), { n: title }),
+    onclick: () => openLootDetail(source),
+    onpointerenter: preload,
+    onfocus: preload,
+  }, [label, el('span', { class: 'loot-target-icon', 'aria-hidden': 'true' }, ['›'])]);
+}
+
+const localName = (en: string, zh: (s: string) => string | undefined) =>
+  (lang() === 'zh-tw' ? zh(en) ?? en : en);
+
+function target(loot: string) {
+  return detailButton(loot, name(loot, lootZh), localName(loot, lootZh), 'loot-target');
+}
+
+/** 補給箱內容 / Weapons in a vendor cache open the weapon list; gear stays text. */
+function cacheItem(item: string) {
+  const label = el('strong', {}, [name(item, cacheItemZh)]);
+  return weaponClassOf(item) ? detailButton(item, label, localName(item, cacheItemZh), 'loot-cache-btn') : label;
 }
 
 function renderSnapshot(snap: LootSnapshot) {
@@ -75,7 +88,7 @@ function renderSnapshot(snap: LootSnapshot) {
       el('ul', { class: 'loot-caches' }, snap.vendorCaches.map((c) =>
         el('li', { class: 'loot-cache' }, [
           el('span', { class: 'loot-cache-type' }, [name(c.type, cacheTypeZh)]),
-          el('strong', {}, [name(c.item, cacheItemZh)]),
+          cacheItem(c.item),
         ]))),
     ])
     : null;

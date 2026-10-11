@@ -140,6 +140,15 @@ const UI = {
   detailRandom: { 'zh-tw': '隨機屬性', en: 'Random attribute' },
   detailTalentChoice: { 'zh-tw': '可選天賦', en: 'Talent slot' },
   detailMods: { 'zh-tw': '模組 ×{n}', en: '{n} mod slot(s)' },
+  detailWeaponClass: { 'zh-tw': '武器類別', en: 'Weapon class' },
+  detailWeaponCount: { 'zh-tw': '共 {n} 把', en: '{n} weapons' },
+  detailTier: {
+    exotic: { 'zh-tw': '奇特武器', en: 'Exotic' },
+    named: { 'zh-tw': '具名武器', en: 'Named' },
+    regular: { 'zh-tw': '一般武器', en: 'Regular' },
+  },
+  detailExoticTag: { 'zh-tw': '奇特', en: 'Exotic' },
+  detailRpm: { 'zh-tw': '射速', en: 'RPM' },
   detailClose: { 'zh-tw': '關閉', en: 'Close' },
   detailLoading: { 'zh-tw': '讀取裝備資料中…', en: 'Loading gear data…' },
   detailMissing: {
@@ -229,6 +238,7 @@ export const tWeaponType = (name: string) =>
   (name in UI.weaponType ? pick(UI.weaponType[name as keyof typeof UI.weaponType]) : name);
 export const tQuality = (q: keyof typeof UI.quality) => pick(UI.quality[q]);
 export const tCategory = (c: keyof typeof UI.category) => pick(UI.category[c]);
+export const tDetailTier = (k: keyof typeof UI.detailTier) => pick(UI.detailTier[k]);
 export const tFocus = (f: keyof typeof UI.focus) => pick(UI.focus[f]);
 
 /**

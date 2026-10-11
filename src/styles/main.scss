@@ -524,8 +524,14 @@ select, input[type="number"] {
   &.fixed { color: var(--cat); font-weight: 600; }
 }
 
+// 天賦細節 / A fixed talent with its wording, across the full row beneath.
 // White, not gold: gold is reserved for named pieces.
-.d-piece-talent { font-size: .78rem; color: $text; font-weight: 600; cursor: help; }
+.d-piece-talent {
+  grid-column: 1 / -1; padding: .4rem .6rem; margin-top: .1rem;
+  background: $panel-2; border-left: 2px solid $line; border-radius: 2px;
+  strong { font-size: .82rem; }
+  p { font-size: .8rem; }
+}
 .d-mods { font-size: .74rem; color: $muted; }
 .d-note { margin: 0; font-size: .74rem; color: $muted; }
 
@@ -536,3 +542,23 @@ select, input[type="number"] {
   .d-piece-name { grid-column: 1 / -1; }
   .d-tiers th { width: 4rem; }
 }
+
+// 補給箱裡的武器 / A weapon cache entry opens the weapon list.
+.loot-cache-btn { color: $text; padding: .1rem .3rem; margin-left: -.3rem; width: calc(100% + .3rem); }
+
+// 武器清單 / Weapon-class popup: exotic, named, regular.
+$exotic: #ff4f3a;
+.pill.weapon { color: $text; }
+.d-count { font-size: .78rem; color: $muted; }
+.d-tier-heading.exotic { color: $exotic; }
+.d-tier-heading.named { color: $skill; }
+
+.d-weapons { background: $panel; border: 1px solid $line; }
+.d-weapon {
+  .d-weapon-numbers { display: block; margin-top: .15rem; color: $muted; font-size: .74rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+  &.named .d-piece-name { color: $skill; font-weight: 600; }
+  &.exotic .d-piece-name { color: $exotic; font-weight: 600; }
+  &.exotic .d-tag { border-color: rgba($exotic, .5); }
+  &.exotic .d-piece-talent { border-left-color: rgba($exotic, .6); }
+}
+.d-piece.named .d-piece-talent { border-left-color: rgba($skill, .6); }

@@ -1,15 +1,20 @@
 /**
- * 戰利品詳情視窗 / The popup behind a loot target: the brand or set's bonus
- * tiers, its chest/backpack talents, and every piece by slot, named pieces
- * picked out in their own colour.
+ * 戰利品詳情視窗 / The popup behind a loot target.
+ *
+ * A brand or gear set shows its bonus tiers, its chest/backpack talents and
+ * every piece by slot. A weapon class shows every weapon it can drop —
+ * exotics, then named, then regular. Named and exotic items are picked out in
+ * their own colours, and every fixed talent is shown with its full wording.
  *
  * A native `<dialog>`: Esc closes it, focus is trapped and restored, and the
  * backdrop dims the page without any of that being written here.
  */
-import { lang, t, tItem, tSet, tSlot, tStat, tTalent } from '../i18n/index.ts';
+import { lang, t, tDetailTier, tItem, tSet, tSlot, tStat, tTalent, tWeapon, tWeaponType } from '../i18n/index.ts';
 import type { Category, Value } from '../model/types.ts';
 import { setDetail } from '../model/set-detail.ts';
 import type { CoreView, MinorView, PieceView, SetData, SetDetail } from '../model/set-detail.ts';
+import { weaponClassOf, weaponDetail } from '../model/weapon-detail.ts';
+import type { WeaponDetail, WeaponView } from '../model/weapon-detail.ts';
 import { el } from './dom.ts';
 
 let dataPromise: Promise<SetData> | null = null;
@@ -37,15 +42,30 @@ function bilingual(local: string, en: string) {
     : [en];
 }
 
-function render(d: SetDetail, data: SetData) {
+/** Shared by both popups: stat names, and the core / attribute / talent cells. */
+function parts(data: SetData) {
   const statName = new Map(data.stats.map((s) => [s.id, s.name]));
   const stat = (id: string | null) => (id ? tStat(id, statName.get(id) ?? id) : '—');
 
-  const talentBlock = (name: string, description: string | null) =>
-    el('div', { class: 'd-talent' }, [
+  const core = (c: CoreView) => el('span', { class: `d-chip ${catClass(c.category)}` }, [
+    c.fixed ? `${stat(c.statId)} ${fmtValue(c.value)}` : stat(c.statId),
+  ]);
+  const minor = (m: MinorView) => (m.fixed
+    ? el('span', { class: `d-attr fixed ${catClass(m.category)}` }, [`${stat(m.statId)} ${fmtValue(m.value)}`])
+    : el('span', { class: 'd-attr random' }, [t('detailRandom')]));
+
+  /** 天賦 / A talent's name with its full wording beneath. */
+  const talentBlock = (name: string, description: string | null, cls = 'd-talent') =>
+    el('div', { class: cls }, [
       el('strong', {}, bilingual(tTalent(name), name)),
       description ? el('p', {}, [description]) : null,
     ]);
+
+  return { stat, core, minor, talentBlock };
+}
+
+function renderSet(d: SetDetail, data: SetData) {
+  const { stat, core, minor, talentBlock } = parts(data);
 
   // 套裝效果 / Bonus tiers, then (gear sets only) the chest and backpack talents.
   const tierRows = d.tiers.map((tier) => el('tr', {}, [
@@ -61,13 +81,6 @@ function render(d: SetDetail, data: SetData) {
     el('td', {}, [talentBlock(st.name, st.description)]),
   ]));
 
-  const core = (c: CoreView) => (c.fixed
-    ? el('span', { class: `d-chip ${catClass(c.category)}` }, [`${stat(c.statId)} ${fmtValue(c.value)}`])
-    : el('span', { class: `d-chip ${catClass(c.category)}` }, [stat(c.statId)]));
-  const minor = (m: MinorView) => (m.fixed
-    ? el('span', { class: `d-attr fixed ${catClass(m.category)}` }, [`${stat(m.statId)} ${fmtValue(m.value)}`])
-    : el('span', { class: 'd-attr random' }, [t('detailRandom')]));
-
   const pieceRow = (p: PieceView) => el('li', { class: `d-piece${p.item.isNamed ? ' named' : ''}` }, [
     el('div', { class: 'd-piece-name' }, [
       ...bilingual(tItem(p.item.name, p.item.slot, d.set.name), p.item.name),
@@ -76,12 +89,10 @@ function render(d: SetDetail, data: SetData) {
     el('div', { class: 'd-piece-cores' }, p.cores.map(core)),
     el('div', { class: 'd-piece-attrs' }, p.minors.map(minor)),
     el('div', { class: 'd-piece-extra' }, [
-      p.talent === null ? null
-        : p.talent.fixed
-          ? el('span', { class: 'd-piece-talent', title: p.talent.description ?? '' }, [tTalent(p.talent.name)])
-          : el('span', { class: 'd-attr random' }, [t('detailTalentChoice')]),
+      p.talent && !p.talent.fixed ? el('span', { class: 'd-attr random' }, [t('detailTalentChoice')]) : null,
       p.mods ? el('span', { class: 'd-mods' }, [fill(t('detailMods'), { n: String(p.mods) })]) : null,
     ]),
+    p.talent?.fixed ? talentBlock(p.talent.name, p.talent.description, 'd-talent d-piece-talent') : null,
   ]);
 
   return [
@@ -96,8 +107,43 @@ function render(d: SetDetail, data: SetData) {
         el('ul', { class: 'd-pieces' }, items.map(pieceRow)),
       ]))),
     ]),
-    lang() === 'zh-tw' ? el('p', { class: 'd-note' }, [t('detailTalentEn')]) : null,
   ];
+}
+
+function renderWeapons(d: WeaponDetail, data: SetData) {
+  const { core, minor, talentBlock } = parts(data);
+
+  const numbers = (w: WeaponView['weapon']) => [
+    w.baseDamage !== null ? `${t('baseDamage')} ${Math.round(w.baseDamage).toLocaleString('en-US')}` : null,
+    w.rpm !== null ? `${t('detailRpm')} ${w.rpm}` : null,
+    w.magSize !== null ? `${t('magazine')} ${w.magSize}` : null,
+  ].filter((s): s is string => s !== null).join(' · ');
+
+  const row = (v: WeaponView) => {
+    const w = v.weapon;
+    const tier = w.isExotic ? 'exotic' : w.isNamed ? 'named' : '';
+    return el('li', { class: `d-piece d-weapon ${tier}` }, [
+      el('div', { class: 'd-piece-name' }, [
+        ...bilingual(tWeapon(w.name), w.name),
+        w.isExotic ? el('span', { class: 'd-tag' }, [t('detailExoticTag')])
+          : w.isNamed ? el('span', { class: 'd-tag' }, [t('detailNamed')]) : null,
+        el('small', { class: 'd-weapon-numbers' }, [numbers(w)]),
+      ]),
+      el('div', { class: 'd-piece-cores' }, v.cores.map(core)),
+      el('div', { class: 'd-piece-attrs' }, v.minors.map(minor)),
+      el('div', { class: 'd-piece-extra' }, [
+        v.talent && !v.talent.fixed ? el('span', { class: 'd-attr random' }, [t('detailTalentChoice')]) : null,
+      ]),
+      v.talent?.fixed ? talentBlock(v.talent.name, v.talent.description, 'd-talent d-piece-talent') : null,
+    ]);
+  };
+
+  return d.groups.map((g) => el('section', { class: 'd-section' }, [
+    el('h3', { class: `col-heading d-tier-heading ${g.tier}` }, [
+      `${tDetailTier(g.tier)} (${g.weapons.length})`,
+    ]),
+    el('ul', { class: 'd-pieces d-weapons' }, g.weapons.map(row)),
+  ]));
 }
 
 /** 開啟 / Open the popup for one loot target, by the source's own name for it. */
@@ -117,26 +163,42 @@ export function openLootDetail(name: string) {
   document.body.append(dialog);
   dialog.showModal();
 
+  const note = () => (lang() === 'zh-tw' ? el('p', { class: 'd-note' }, [t('detailTalentEn')]) : null);
+  const show = (nodes: (HTMLElement | null)[]) =>
+    body.replaceChildren(...nodes.filter((n): n is HTMLElement => n !== null));
+
   preloadLootData().then((data) => {
-    const d = setDetail(data, name);
-    if (!d) {
-      body.replaceChildren(el('p', { class: 'loot-notice' }, [fill(t('detailMissing'), { n: name })]));
+    if (weaponClassOf(name)) {
+      const d = weaponDetail(data, name)!;
+      const total = d.groups.reduce((n, g) => n + g.weapons.length, 0);
+      heading.replaceChildren(
+        el('h2', {}, bilingual(tWeaponType(d.weaponType), d.weaponType)),
+        el('div', { class: 'd-meta' }, [
+          el('span', { class: 'pill weapon' }, [t('detailWeaponClass')]),
+          el('span', { class: 'd-count' }, [fill(t('detailWeaponCount'), { n: String(total) })]),
+        ]),
+      );
+      show([...renderWeapons(d, data), note()]);
       return;
     }
-    const kind = d.set.kind === 'brand' ? t('detailBrand') : t('detailGearset');
+
+    const d = setDetail(data, name);
+    if (!d) {
+      show([el('p', { class: 'loot-notice' }, [fill(t('detailMissing'), { n: name })])]);
+      return;
+    }
+    const coreName = d.set.defaultCoreStatId
+      ? tStat(d.set.defaultCoreStatId, data.stats.find((s) => s.id === d.set.defaultCoreStatId)?.name ?? d.set.defaultCoreStatId)
+      : null;
     heading.replaceChildren(
       el('h2', {}, bilingual(tSet(d.set.name), d.set.name)),
       el('div', { class: 'd-meta' }, [
-        el('span', { class: `pill ${d.set.kind}` }, [kind]),
-        d.set.defaultCoreStatId
-          ? el('span', { class: `d-chip ${catClass(d.coreCategory)}` }, [
-            `${t('detailCore')}：${tStat(d.set.defaultCoreStatId, data.stats.find((s) => s.id === d.set.defaultCoreStatId)?.name ?? d.set.defaultCoreStatId)}`,
-          ])
-          : null,
+        el('span', { class: `pill ${d.set.kind}` }, [d.set.kind === 'brand' ? t('detailBrand') : t('detailGearset')]),
+        coreName ? el('span', { class: `d-chip ${catClass(d.coreCategory)}` }, [`${t('detailCore')}：${coreName}`]) : null,
       ]),
     );
-    body.replaceChildren(...render(d, data).filter((n): n is HTMLElement => n !== null));
+    show([...renderSet(d, data), note()]);
   }, () => {
-    body.replaceChildren(el('p', { class: 'loot-notice' }, [t('detailFailed')]));
+    show([el('p', { class: 'loot-notice' }, [t('detailFailed')])]);
   });
 }

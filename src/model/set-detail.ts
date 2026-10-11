@@ -8,8 +8,12 @@
 import { GEAR_SLOTS } from './types.ts';
 import type { AttributeDef, Category, GameData, GearItem, GearSlot, SetDef, Value } from './types.ts';
 
-/** The slice of the dataset the loot page loads; see `data/loot-data.ts`. */
-export type SetData = Pick<GameData, 'sets' | 'gear' | 'attributes' | 'gearTalents' | 'stats'>;
+/**
+ * The slice of the dataset the loot page loads, for both the set and the
+ * weapon popups; see `data/loot-data.ts`.
+ */
+export type SetData = Pick<GameData,
+  'sets' | 'gear' | 'attributes' | 'gearTalents' | 'stats' | 'weapons' | 'weaponTalents'>;
 
 /**
  * 名稱比對 / The loot source and the dataset differ in trailing punctuation —
@@ -60,6 +64,18 @@ function categoryIndex(attrs: AttributeDef[]) {
   return m;
 }
 
+/**
+ * 固定屬性 / A fixed attribute as a stat line. One with no roll of its own sits
+ * at its maximum — that is what makes a named item's attribute worth farming.
+ */
+export function fixedLineFor(attributes: AttributeDef[]) {
+  const attrs = new Map(attributes.map((a) => [a.id, a]));
+  return (attributeId: string, value: Value | null): StatLine | null => {
+    const a = attrs.get(attributeId);
+    return a ? { statId: a.statId, value: value ?? a.max, category: a.category } : null;
+  };
+}
+
 export function findSet(data: SetData, name: string): SetDef | null {
   const key = normName(name);
   return data.sets.find((s) => normName(s.name) === key) ?? null;
@@ -70,16 +86,9 @@ export function setDetail(data: SetData, name: string): SetDetail | null {
   if (!set) return null;
 
   const cats = categoryIndex(data.attributes);
-  const attrs = new Map(data.attributes.map((a) => [a.id, a]));
   const talentText = new Map(data.gearTalents.map((t) => [t.name, t.description || null]));
   const cat = (statId: string | null) => (statId ? cats.get(statId) ?? null : null);
-
-  const fixedLine = (attributeId: string, value: Value | null): StatLine | null => {
-    const a = attrs.get(attributeId);
-    // A fixed attribute with no roll of its own sits at its maximum — that is
-    // what makes a named piece's attribute worth farming.
-    return a ? { statId: a.statId, value: value ?? a.max, category: a.category } : null;
-  };
+  const fixedLine = fixedLineFor(data.attributes);
 
   const piece = (item: GearItem): PieceView => ({
     item,
