@@ -1,6 +1,6 @@
 /** 每日戰利品 / Parsing the Raigulus snapshot and naming what it lists. */
 import { describe, expect, it } from 'vitest';
-import { isStale, parseLoot, utcPhraseToLocal } from '../src/model/loot.ts';
+import { isStale, localClock, nextReset, parseLoot, rotationDate } from '../src/model/loot.ts';
 import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../src/i18n/loot.ts';
 import { applyRows } from '../src/i18n/overrides.ts';
 
@@ -62,19 +62,33 @@ describe('parseLoot', () => {
 });
 
 describe('dates and times', () => {
-  it('flags a snapshot from another UTC day', () => {
-    const snap = parseLoot(SAMPLE)!;
-    expect(isStale(snap, new Date('2026-10-09T23:59:00Z'))).toBe(false);
-    expect(isStale(snap, new Date('2026-10-10T03:00:00Z'))).toBe(true);
+  // The rotation turns over at 08:00 UTC, not at UTC midnight and not at the
+  // 07:00 the source's own text claims; see DAILY_RESET_UTC_HOUR.
+  it('names the rotation by the 08:00 UTC reset it began at', () => {
+    expect(rotationDate(new Date('2026-10-10T07:59:00Z'))).toBe('2026-10-09');
+    expect(rotationDate(new Date('2026-10-10T08:00:00Z'))).toBe('2026-10-10');
   });
 
-  it('converts the UTC time in a phrase to local time', () => {
-    const now = new Date('2026-10-09T12:00:00Z');
-    const expected = new Date(Date.UTC(2026, 9, 9, 7, 0));
-    const hh = String(expected.getHours()).padStart(2, '0');
-    const mm = String(expected.getMinutes()).padStart(2, '0');
-    expect(utcPhraseToLocal('Around 07:00 UTC', now)).toBe(`${hh}:${mm}`);
-    expect(utcPhraseToLocal('soon', now)).toBeNull();
+  it('does not flag the current rotation as stale between UTC midnight and the reset', () => {
+    const snap = parseLoot(SAMPLE)!;                          // date 2026-10-09
+    expect(isStale(snap, new Date('2026-10-10T03:00:00Z'))).toBe(false);
+    expect(isStale(snap, new Date('2026-10-10T07:59:00Z'))).toBe(false);
+    expect(isStale(snap, new Date('2026-10-10T08:03:00Z'))).toBe(true);
+  });
+
+  it('finds the next reset, rolling to tomorrow once today\'s has passed', () => {
+    expect(nextReset(new Date('2026-10-11T07:00:00Z')).toISOString()).toBe('2026-10-11T08:00:00.000Z');
+    expect(nextReset(new Date('2026-10-11T08:00:00Z')).toISOString()).toBe('2026-10-12T08:00:00.000Z');
+    expect(nextReset(new Date('2026-10-11T23:30:00Z')).toISOString()).toBe('2026-10-12T08:00:00.000Z');
+  });
+
+  it('shows 08:00 UTC as 16:00 in Taipei', () => {
+    const at = new Date('2026-10-11T08:00:00Z');
+    const offsetMin = -at.getTimezoneOffset();
+    const local = new Date(Date.UTC(2026, 9, 11, 8, 0) + offsetMin * 60000);
+    const hhmm = `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+    expect(localClock(at)).toBe(hhmm);
+    if (offsetMin === 480) expect(localClock(at)).toBe('16:00');
   });
 });
 
@@ -82,6 +96,19 @@ describe('loot names', () => {
   it('finds every target in today\'s sample, despite the missing trailing dot', () => {
     for (const { loot } of SAMPLE.missions) expect(lootZh(loot), loot).toBeTruthy();
     expect(lootZh('Walker, Harris & Co')).toBe(lootZh('Walker, Harris & Co.'));
+  });
+
+  // Every value the source published between 2026-09 and 2026-10-11 (its
+  // last 100 commits): brands, gear sets, and the odd weapon class.
+  it('names every target and cache the source has published so far', () => {
+    const targets = ['Airaldi Holdings', 'China Light Industries', 'Concentrated Company', 'Edelweiss GPz',
+      'Electrique', 'Foundry Bulwark', 'Grupo Sombra S.A.', 'Hana-U Corporation', 'Hard Wired', 'Heartbreaker',
+      'Legatus S.p.A.', 'Ongoing Directive', 'Ortiz: Reficere', 'Overlord Armaments', 'Petrov Defense Group',
+      'Pistol', 'Providence Defense', 'Refactor', 'SMG', 'Tip of the Spear', 'Tipping Scales', 'True Patriot',
+      'Walker, Harris & Co'];
+    for (const n of targets) expect(lootZh(n), n).toBeTruthy();
+    const caches = ['Backpacks', 'Chest Pieces', 'Gloves', 'Holsters', 'Assault Rifles', 'MMRs', 'Rifles', 'Shotguns'];
+    for (const n of caches) expect(cacheItemZh(n), n).toBeTruthy();
   });
 
   it('names the vendor caches', () => {

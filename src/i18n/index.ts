@@ -130,7 +130,8 @@ const UI = {
   lootRotation: { 'zh-tw': '輪替', en: 'Rotation' },
   lootChecked: { 'zh-tw': '最後檢查', en: 'Last checked' },
   lootNext: { 'zh-tw': '下次更新', en: 'Next update' },
-  lootLocal: { 'zh-tw': '本地時間 {t}', en: '{t} your time' },
+  lootTomorrow: { 'zh-tw': '明天 {t}', en: 'Tomorrow {t}' },
+  lootResetDaily: { 'zh-tw': '本地時間・每日 {t} UTC 重置', en: 'Your time · daily reset at {t} UTC' },
   lootLoading: { 'zh-tw': '讀取今日資料中…', en: 'Loading today’s rotation…' },
   lootFailed: {
     'zh-tw': '無法取得今日資料，可能是來源暫時無法連線。可以直接到來源網站查看：',
@@ -138,8 +139,8 @@ const UI = {
   },
   lootRetry: { 'zh-tw': '重試', en: 'Retry' },
   lootStale: {
-    'zh-tw': '這份資料不是今天（UTC）的。來源約在 {t} 更新，在那之前顯示的是前一天的輪替。',
-    en: 'This snapshot isn’t from today (UTC). The source updates around {t}; until then it shows the previous rotation.',
+    'zh-tw': '這份還是上一輪的資料。每日 {t}（本地時間）重置後，來源通常在幾分鐘內更新。',
+    en: 'This is still the previous rotation. The source usually catches up a few minutes after the daily reset at {t} your time.',
   },
   lootNotOk: { 'zh-tw': '來源標示的狀態：{s}', en: 'Source status: {s}' },
   lootBanner: {

@@ -1,7 +1,7 @@
 /** 每日戰利品頁 / The daily loot page: today's rotation, read live. */
 import { lang, t } from '../i18n/index.ts';
 import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../i18n/loot.ts';
-import { LOOT_PAGE, isStale, loadLoot, utcPhraseToLocal } from '../model/loot.ts';
+import { DAILY_RESET_UTC_HOUR, LOOT_PAGE, isStale, loadLoot, localClock, nextReset, sameLocalDay } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
 import { el } from './dom.ts';
 
@@ -28,15 +28,18 @@ function meta(label: string, value: (Node | string)[]) {
 }
 
 function renderSnapshot(snap: LootSnapshot) {
-  const nextLocal = utcPhraseToLocal(snap.nextExpectedUpdate);
-  const next: (Node | string)[] = [snap.nextExpectedUpdate || '—'];
-  if (nextLocal) next.push(el('small', {}, [fill(t('lootLocal'), { t: nextLocal })]));
+  const now = new Date();
+  const reset = nextReset(now);
+  const resetLocal = localClock(reset);
+  const resetUtc = `${String(DAILY_RESET_UTC_HOUR).padStart(2, '0')}:00`;
+  const next: (Node | string)[] = [
+    sameLocalDay(reset, now) ? resetLocal : fill(t('lootTomorrow'), { t: resetLocal }),
+    el('small', {}, [fill(t('lootResetDaily'), { t: resetUtc })]),
+  ];
 
   const notices: HTMLElement[] = [];
-  if (isStale(snap)) {
-    notices.push(el('p', { class: 'loot-notice' }, [
-      fill(t('lootStale'), { t: nextLocal ?? snap.nextExpectedUpdate ?? '07:00 UTC' }),
-    ]));
+  if (isStale(snap, now)) {
+    notices.push(el('p', { class: 'loot-notice' }, [fill(t('lootStale'), { t: resetLocal })]));
   }
   if (snap.status && snap.status !== 'ok') {
     notices.push(el('p', { class: 'loot-notice' }, [

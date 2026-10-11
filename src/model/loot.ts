@@ -29,7 +29,6 @@ export interface LootSnapshot {
   /** `ok` when the source considers today's snapshot current. */
   status: string;
   lastChecked: string;
-  nextExpectedUpdate: string;
   note: string;
 }
 
@@ -59,30 +58,49 @@ export function parseLoot(raw: unknown): LootSnapshot | null {
     vendorCaches,
     status: str(r.status),
     lastChecked: str(r.last_checked) || str(r.last_updated),
-    nextExpectedUpdate: str(r.next_expected_update),
     note: str(r.snapshot_note),
   };
 }
 
 /**
- * 是否過期 / The snapshot is for a day other than today (UTC). The source
- * rolls over around 07:00 UTC, so in the hours before that yesterday's list is
- * still the live one — this flags it rather than hiding it.
+ * 每日重置 / The game's daily reset, 08:00 UTC, which is when the targeted loot
+ * rotates.
+ *
+ * Not taken from the source's `next_expected_update`: that says "Around 07:00
+ * UTC", but its own commit history shows the 07:05 check still carrying the
+ * previous day and the new date first appearing at 08:05, on 2026-10-10 and
+ * 2026-10-11 alike. Its `last_updated` is not UTC either (10:01 for an 08:0x
+ * change), so neither field is used for timing.
  */
-export const isStale = (snap: LootSnapshot, now = new Date()) =>
-  snap.date !== now.toISOString().slice(0, 10);
+export const DAILY_RESET_UTC_HOUR = 8;
+
+const HOUR_MS = 3600 * 1000;
+
+/** 輪替日 / The rotation `now` falls in, named by the UTC date it began on. */
+export const rotationDate = (now = new Date()) =>
+  new Date(now.getTime() - DAILY_RESET_UTC_HOUR * HOUR_MS).toISOString().slice(0, 10);
 
 /**
- * 換算本地時間 / Turn the first `HH:MM UTC` in a phrase into the reader's
- * local clock time, e.g. "Around 07:00 UTC" → "15:00" in Taipei. Null when the
- * phrase carries no such time.
+ * 是否過期 / The snapshot predates the current rotation. Right after a reset
+ * the source takes a few minutes to catch up, so this is briefly true then —
+ * which is accurate: the list on screen is yesterday's until it does.
  */
-export function utcPhraseToLocal(phrase: string, now = new Date()): string | null {
-  const m = /(\d{1,2}):(\d{2})\s*UTC/i.exec(phrase);
-  if (!m) return null;
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), Number(m[1]), Number(m[2])));
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+export const isStale = (snap: LootSnapshot, now = new Date()) => snap.date < rotationDate(now);
+
+/** 下次重置 / The next daily reset after `now`. */
+export function nextReset(now = new Date()): Date {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), DAILY_RESET_UTC_HOUR));
+  if (d.getTime() <= now.getTime()) d.setUTCDate(d.getUTCDate() + 1);
+  return d;
 }
+
+/** 本地時鐘 / `HH:MM` on the reader's own clock. */
+export const localClock = (d: Date) =>
+  `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+/** 是否同一個本地日 / Whether two instants share a calendar day on the reader's clock. */
+export const sameLocalDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 let cached: Promise<LootSnapshot | null> | null = null;
 

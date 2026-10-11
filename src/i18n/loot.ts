@@ -21,6 +21,7 @@ export const CACHE_TYPE_ZH: Record<string, string> = {
 /** 補給箱內容 / Cache contents: the source uses plural slot / weapon-class words. */
 export const CACHE_ITEM_ZH: Record<string, string> = {
   ARs: '突擊步槍',
+  'Assault Rifles': '突擊步槍',
   LMGs: '輕機槍',
   MMRs: '射手步槍',
   Pistols: '手槍',
@@ -33,6 +34,20 @@ export const CACHE_ITEM_ZH: Record<string, string> = {
   Gloves: '手套',
   Holsters: '槍套',
   Kneepads: '護膝',
+};
+
+/**
+ * 武器類別 / Now and then a mission targets a weapon class rather than a brand
+ * (seen: `Pistol`, `SMG`). Same words as the planner's weapon types.
+ */
+export const LOOT_TYPE_ZH: Record<string, string> = {
+  'Assault Rifle': '突擊步槍',
+  LMG: '輕機槍',
+  'Marksman Rifle': '射手步槍',
+  Pistol: '手槍',
+  Rifle: '步槍',
+  Shotgun: '霰彈槍',
+  SMG: '衝鋒槍',
 };
 
 /**
@@ -50,8 +65,9 @@ function lookup(map: Record<string, string>, name: string): string | undefined {
   return undefined;
 }
 
-/** 目標戰利品名 / A loot target is a brand, a gear set, or now and then an item. */
-export const lootZh = (name: string) => lookup(SET_ZH, name) ?? lookup(ITEM_ZH, name);
+/** 目標戰利品名 / A loot target is a brand, a gear set, a weapon class, or now and then an item. */
+export const lootZh = (name: string) =>
+  lookup(SET_ZH, name) ?? lookup(ITEM_ZH, name) ?? lookup(LOOT_TYPE_ZH, name);
 export const missionZh = (name: string) => lookup(MISSION_ZH, name);
 export const cacheTypeZh = (name: string) => lookup(CACHE_TYPE_ZH, name);
 export const cacheItemZh = (name: string) => lookup(CACHE_ITEM_ZH, name);
