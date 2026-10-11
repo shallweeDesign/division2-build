@@ -42,10 +42,13 @@ echo "已部署的檔案 / Files deployed:"
 
 # Guard against the one mistake this script cannot fix: a build made for the
 # wrong base path 404s every asset the moment it leaves the dev server.
-if ! grep -q '/lab/division2_builder/assets/' "$TARGET/index.html"; then
-  die "index.html 的資源路徑不是 /lab/division2_builder/ — 檢查 vite.config.ts 的 base
+for page in index.html loot/index.html; do
+  [ -f "$TARGET/$page" ] || die "$page 沒有建置出來 / $page is missing from the build."
+  if ! grep -q '/lab/division2_builder/assets/' "$TARGET/$page"; then
+    die "$page 的資源路徑不是 /lab/division2_builder/ — 檢查 vite.config.ts 的 base
   Asset paths are wrong for this sub-path; check \`base\` in vite.config.ts."
-fi
+  fi
+done
 echo
 echo "✓ 資源路徑正確 / Asset paths verified"
 
