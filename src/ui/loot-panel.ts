@@ -1,9 +1,10 @@
 /** 每日戰利品頁 / The daily loot page: today's rotation, read live. */
 import { lang, t } from '../i18n/index.ts';
-import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../i18n/loot.ts';
+import { cacheItemZh, cacheTypeZh, isWeaponClass, lootZh, missionZh } from '../i18n/loot.ts';
 import { LOOT_PAGE, isStale, loadLoot, localClock, localDate, nextReset } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
 import { el } from './dom.ts';
+import { openLootDetail, preloadLootData } from './loot-detail.ts';
 
 const fill = (s: string, vars: Record<string, string>) =>
   s.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '');
@@ -27,6 +28,24 @@ function meta(label: string, value: (Node | string)[]) {
   return el('div', { class: 'loot-meta-item' }, [el('dt', {}, [label]), el('dd', {}, value)]);
 }
 
+/**
+ * 目標戰利品 / A brand or gear set opens its detail popup; a weapon class has
+ * no set behind it, so it stays plain text.
+ */
+function target(loot: string) {
+  if (isWeaponClass(loot)) return el('span', { class: 'loot-target' }, [name(loot, lootZh)]);
+  const label = lang() === 'zh-tw' ? lootZh(loot) ?? loot : loot;
+  return el('button', {
+    class: 'loot-target loot-target-btn',
+    type: 'button',
+    'aria-haspopup': 'dialog',
+    title: fill(t('detailOpen'), { n: label }),
+    onclick: () => openLootDetail(loot),
+    onpointerenter: () => { void preloadLootData().catch(() => {}); },
+    onfocus: () => { void preloadLootData().catch(() => {}); },
+  }, [name(loot, lootZh), el('span', { class: 'loot-target-icon', 'aria-hidden': 'true' }, ['›'])]);
+}
+
 function renderSnapshot(snap: LootSnapshot) {
   const now = new Date();
   const reset = nextReset(now);
@@ -47,7 +66,7 @@ function renderSnapshot(snap: LootSnapshot) {
   const missions = el('ol', { class: 'loot-missions' }, snap.missions.map((m) =>
     el('li', { class: 'loot-row' }, [
       el('span', { class: 'loot-mission' }, [name(m.mission, missionZh)]),
-      el('span', { class: 'loot-target' }, [name(m.loot, lootZh)]),
+      target(m.loot),
     ])));
 
   const caches = snap.vendorCaches.length

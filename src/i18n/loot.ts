@@ -9,6 +9,7 @@
  * Google Sheet under kind `mission`, keyed by the source's English name.
  */
 import { ITEM_ZH, SET_ZH } from './names.ts';
+import { normName as norm } from '../model/set-detail.ts';
 
 export const MISSION_ZH: Record<string, string> = {};
 
@@ -50,14 +51,8 @@ export const LOOT_TYPE_ZH: Record<string, string> = {
   SMG: '衝鋒槍',
 };
 
-/**
- * 正規化 / The source and the dataset disagree on small things — the source
- * writes "Walker, Harris & Co", the dataset "Walker, Harris & Co." — so lookups
- * compare on lower case with trailing dots and spaces dropped.
- */
-const norm = (s: string) => s.trim().replace(/[.\s]+$/, '').toLowerCase();
 
-/** 依正規化鍵查表 / Look a name up in a map by its normalised key. */
+/** 依正規化鍵查表 / Look a name up by its normalised key (see `normName`). */
 function lookup(map: Record<string, string>, name: string): string | undefined {
   if (map[name]) return map[name];
   const key = norm(name);
@@ -68,6 +63,8 @@ function lookup(map: Record<string, string>, name: string): string | undefined {
 /** 目標戰利品名 / A loot target is a brand, a gear set, a weapon class, or now and then an item. */
 export const lootZh = (name: string) =>
   lookup(SET_ZH, name) ?? lookup(ITEM_ZH, name) ?? lookup(LOOT_TYPE_ZH, name);
+/** 武器類別目標 / A weapon-class target has no set behind it to show. */
+export const isWeaponClass = (name: string) => lookup(LOOT_TYPE_ZH, name) !== undefined;
 export const missionZh = (name: string) => lookup(MISSION_ZH, name);
 export const cacheTypeZh = (name: string) => lookup(CACHE_TYPE_ZH, name);
 export const cacheItemZh = (name: string) => lookup(CACHE_ITEM_ZH, name);
