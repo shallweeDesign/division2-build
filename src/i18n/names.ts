@@ -68,7 +68,10 @@ export const BRAND_ZH: Record<string, string> = {
   'Zwiadowka Sp. z o.o.': '茲維多弗卡有限公司',
 };
 
-/** 套裝 / Gear sets. 27 of 28 confirmed; Ember Engine has no source yet. */
+/**
+ * 套裝 / Gear sets, all 28. Ember Engine's name is from the user's in-game
+ * screenshot (2026-10-11), the others as before.
+ */
 export const GEAR_SET_ZH: Record<string, string> = {
   'Aces & Eights': 'A & 8',
   Aegis: '庇護',
@@ -77,6 +80,7 @@ export const GEAR_SET_ZH: Record<string, string> = {
   'Concentrated Company': '鎖定專精',
   'Core Strength': '核心力量',
   'Eclipse Protocol': '日蝕協定',
+  'Ember Engine': '餘燼引擎',
   'Foundry Bulwark': '鑄造廠堡壘',
   'Future Initiative': '未來主動權',
   'Hard Wired': '固線連結',

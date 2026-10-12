@@ -1,0 +1,49 @@
+# 每日戰利品檢查 / Daily check of the loot source against what the page knows.
+#
+# Runs after the 08:00 UTC reset (the source refreshes at :05 past the hour).
+# If scripts/check-loot.ts finds a word the page can't resolve, or the source
+# format changes, it opens an issue — or comments on the one already open —
+# so GitHub emails the repo owner. A clean run closes nothing: close the issue
+# yourself once fixed.
+name: Daily loot check
+
+on:
+  schedule:
+    - cron: '30 8 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # The vocabulary reads the brand/set list this generates.
+      - run: npm run data
+      - name: Check today's snapshot
+        id: check
+        run: |
+          set +e
+          npx tsx scripts/check-loot.ts > report.md
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat report.md
+      - name: Open or update the issue
+        if: steps.check.outputs.status != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="每日戰利品：來源出現無法辨識的內容 / Daily loot: unrecognised source content"
+          existing=$(gh issue list --state open --search "in:title \"Daily loot: unrecognised\"" --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file report.md
+          else
+            gh issue create --title "$title" --body-file report.md
+          fi

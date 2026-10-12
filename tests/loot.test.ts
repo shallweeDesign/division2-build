@@ -1,7 +1,7 @@
 /** 每日戰利品 / Parsing the Raigulus snapshot and naming what it lists. */
 import { describe, expect, it } from 'vitest';
 import { isStale, localClock, localDate, nextReset, parseLoot, rotationDate } from '../src/model/loot.ts';
-import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../src/i18n/loot.ts';
+import { cacheTypeZh, lootZh, missionZh } from '../src/i18n/loot.ts';
 import { applyRows } from '../src/i18n/overrides.ts';
 
 /** The file as served on 2026-10-09, trimmed of fields we do not read. */
@@ -103,23 +103,25 @@ describe('loot names', () => {
     expect(lootZh('Walker, Harris & Co')).toBe(lootZh('Walker, Harris & Co.'));
   });
 
-  // Every value the source published between 2026-09 and 2026-10-11 (its
-  // last 100 commits): brands, gear sets, and the odd weapon class.
+  // Every value the source published between 2026-09 and 2026-10-12 (its
+  // commit history): brands, gear sets, weapon classes and, from 10-12, a
+  // gear slot as a target ("Body Armor").
   it('names every target and cache the source has published so far', () => {
     const targets = ['Airaldi Holdings', 'China Light Industries', 'Concentrated Company', 'Edelweiss GPz',
       'Electrique', 'Foundry Bulwark', 'Grupo Sombra S.A.', 'Hana-U Corporation', 'Hard Wired', 'Heartbreaker',
       'Legatus S.p.A.', 'Ongoing Directive', 'Ortiz: Reficere', 'Overlord Armaments', 'Petrov Defense Group',
       'Pistol', 'Providence Defense', 'Refactor', 'SMG', 'Tip of the Spear', 'Tipping Scales', 'True Patriot',
-      'Walker, Harris & Co'];
+      'Walker, Harris & Co', '5.11 Tactical', 'Rifle', 'Body Armor'];
     for (const n of targets) expect(lootZh(n), n).toBeTruthy();
+    expect(lootZh('Body Armor')).toBe('胸甲');
     const caches = ['Backpacks', 'Chest Pieces', 'Gloves', 'Holsters', 'Assault Rifles', 'MMRs', 'Rifles', 'Shotguns'];
-    for (const n of caches) expect(cacheItemZh(n), n).toBeTruthy();
+    for (const n of caches) expect(lootZh(n), n).toBeTruthy();
   });
 
   it('names the vendor caches', () => {
     for (const { type, item } of SAMPLE.vendor_caches) {
       expect(cacheTypeZh(type)).toBeTruthy();
-      expect(cacheItemZh(item)).toBeTruthy();
+      expect(lootZh(item)).toBeTruthy();
     }
   });
 

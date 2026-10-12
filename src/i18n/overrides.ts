@@ -24,6 +24,7 @@ import { STAT_ZH } from './stats.ts';
 import { TALENT_ZH } from './talents.ts';
 import { SKILL_ZH } from './skills.ts';
 import { MISSION_ZH } from './loot.ts';
+import { LOOT_ALIAS } from '../model/loot-vocab.ts';
 
 /**
  * 試算表網址 / The published sheet, as `File → Share → Publish to web → CSV`.
@@ -35,12 +36,18 @@ export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT90rl
 /** 放棄等待的時間 / Give up after this; the baked names are already on screen. */
 const TIMEOUT_MS = 6000;
 
+/**
+ * Each `kind` the sheet may use. `alias` is the odd one out: its third column
+ * is not a Chinese name but a word the loot page already knows — a row
+ * `alias | Body Armor | Chest Pieces` teaches it a new wording for a slot.
+ */
 const TARGETS: Record<string, Record<string, string>> = {
   item: ITEM_ZH,
   talent: TALENT_ZH,
   stat: STAT_ZH,
   skill: SKILL_ZH,
   mission: MISSION_ZH,
+  alias: LOOT_ALIAS,
 };
 
 /**

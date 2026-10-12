@@ -566,3 +566,10 @@ $exotic: #ff4f3a;
 .d-weapon.named .d-piece-name { color: $skill; font-weight: 600; }
 .d-piece-set { display: block; margin-top: .15rem; color: $muted; font-size: .74rem; font-weight: 400; }
 .d-piece.named .d-piece-talent { border-left-color: rgba($skill, .6); }
+
+// 未辨識 / A loot word nothing here knows: shown as it came, plainly tagged.
+.loot-unknown { display: flex; align-items: flex-start; gap: .5rem; color: $text; font-weight: 400; cursor: help; }
+.loot-unknown-tag {
+  flex: none; font-size: .68rem; padding: 0 .35rem; margin-top: .15rem;
+  color: $warn; border: 1px dashed rgba($warn, .6); border-radius: 2px;
+}

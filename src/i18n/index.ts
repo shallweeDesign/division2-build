@@ -167,6 +167,11 @@ const UI = {
     en: 'Talent wording comes from the dataset.',
   },
   detailOpen: { 'zh-tw': '查看 {n} 的套裝效果與各部位裝備', en: 'Show set bonuses and pieces for {n}' },
+  lootUnknown: { 'zh-tw': '未辨識', en: 'Unrecognised' },
+  lootUnknownHint: {
+    'zh-tw': '來源用了一個這裡還不認得的詞，所以沒有詳細資料可以顯示。',
+    en: 'The source used a word this page does not know yet, so there are no details to show.',
+  },
   lootLoading: { 'zh-tw': '讀取今日資料中…', en: 'Loading today’s rotation…' },
   lootFailed: {
     'zh-tw': '無法取得今日資料，可能是來源暫時無法連線。可以直接到來源網站查看：',

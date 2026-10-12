@@ -6,6 +6,7 @@
  * against the real dataset.
  */
 import { GEAR_SLOTS } from './types.ts';
+import { resolveLoot } from './loot-vocab.ts';
 import type { AttributeDef, Category, GameData, GearItem, GearSlot, SetDef, Value } from './types.ts';
 
 /**
@@ -77,7 +78,11 @@ export function fixedLineFor(attributes: AttributeDef[]) {
 }
 
 export function findSet(data: SetData, name: string): SetDef | null {
-  const key = normName(name);
+  // The vocabulary knows aliases and loose spellings; fall back to a plain
+  // comparison for callers passing the dataset's own name.
+  const ref = resolveLoot(name);
+  const wanted = ref.kind === 'set' ? ref.name : name;
+  const key = normName(wanted);
   return data.sets.find((s) => normName(s.name) === key) ?? null;
 }
 

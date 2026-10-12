@@ -1,8 +1,7 @@
 /** 每日戰利品頁 / The daily loot page: today's rotation, read live. */
 import { lang, t } from '../i18n/index.ts';
-import { cacheItemZh, cacheTypeZh, lootZh, missionZh } from '../i18n/loot.ts';
-import { weaponClassOf } from '../model/weapon-detail.ts';
-import { gearSlotOf } from '../model/gear-slot-detail.ts';
+import { cacheTypeZh, lootZh, missionZh } from '../i18n/loot.ts';
+import { resolveLoot } from '../model/loot-vocab.ts';
 import { LOOT_PAGE, isStale, loadLoot, localClock, localDate, nextReset } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
 import { el } from './dom.ts';
@@ -18,7 +17,8 @@ const fill = (s: string, vars: Record<string, string>) =>
  */
 function name(en: string, zh: (s: string) => string | undefined) {
   const local = lang() === 'zh-tw' ? zh(en) : undefined;
-  if (!local) return el('span', { class: 'loot-name' }, [en]);
+  // "5.11 Tactical" keeps its Latin name in Chinese; once is enough.
+  if (!local || local === en) return el('span', { class: 'loot-name' }, [en]);
   return el('span', { class: 'loot-name' }, [local, el('small', {}, [en])]);
 }
 
@@ -47,17 +47,20 @@ function detailButton(source: string, label: Node, title: string, cls = '') {
   }, [label, el('span', { class: 'loot-target-icon', 'aria-hidden': 'true' }, ['›'])]);
 }
 
-const localName = (en: string, zh: (s: string) => string | undefined) =>
-  (lang() === 'zh-tw' ? zh(en) ?? en : en);
-
-function target(loot: string) {
-  return detailButton(loot, name(loot, lootZh), localName(loot, lootZh), 'loot-target');
-}
-
-/** 補給箱內容 / A cache opens the weapon class, or the gear slot's exotic and named pieces. */
-function cacheItem(item: string) {
-  const label = el('strong', {}, [name(item, cacheItemZh)]);
-  return weaponClassOf(item) || gearSlotOf(item) ? detailButton(item, label, localName(item, cacheItemZh), 'loot-cache-btn') : label;
+/**
+ * 戰利品 / Any loot word, target or cache entry. What it opens follows from
+ * what `resolveLoot` makes of it; a word it does not know is shown as it came,
+ * tagged, and not offered as a button that could only fail.
+ */
+function lootItem(word: string, cls: string) {
+  const label = name(word, lootZh);
+  if (resolveLoot(word).kind === 'unknown') {
+    return el('span', { class: `loot-unknown ${cls}`, title: t('lootUnknownHint') }, [
+      label, el('span', { class: 'loot-unknown-tag' }, [t('lootUnknown')]),
+    ]);
+  }
+  const title = lang() === 'zh-tw' ? lootZh(word) ?? word : word;
+  return detailButton(word, label, title, cls);
 }
 
 function renderSnapshot(snap: LootSnapshot) {
@@ -80,7 +83,7 @@ function renderSnapshot(snap: LootSnapshot) {
   const missions = el('ol', { class: 'loot-missions' }, snap.missions.map((m) =>
     el('li', { class: 'loot-row' }, [
       el('span', { class: 'loot-mission' }, [name(m.mission, missionZh)]),
-      target(m.loot),
+      lootItem(m.loot, 'loot-target'),
     ])));
 
   const caches = snap.vendorCaches.length
@@ -89,7 +92,7 @@ function renderSnapshot(snap: LootSnapshot) {
       el('ul', { class: 'loot-caches' }, snap.vendorCaches.map((c) =>
         el('li', { class: 'loot-cache' }, [
           el('span', { class: 'loot-cache-type' }, [name(c.type, cacheTypeZh)]),
-          cacheItem(c.item),
+          lootItem(c.item, 'loot-cache-btn'),
         ]))),
     ])
     : null;

@@ -1,25 +1,21 @@
 /**
- * 裝備部位詳情 / What a gear vendor cache can be worth chasing: the exotic and
- * named pieces for that slot, exotics first.
+ * 裝備部位詳情 / What a gear slot can be worth chasing — as a vendor cache
+ * ("Chest Pieces") or a mission target ("Body Armor"): the exotic and named
+ * pieces for that slot, exotics first.
  *
  * The 66 plain brand/set pieces per slot are left out on purpose — each is
  * just "{brand} {slot}", and the brand popups already show them.
  */
 import type { GearItem, GearSlot } from './types.ts';
-import { findSet, normName, pieceViewFor } from './set-detail.ts';
+import { findSet, pieceViewFor } from './set-detail.ts';
+import { resolveLoot } from './loot-vocab.ts';
 import type { PieceView, SetData } from './set-detail.ts';
 
-const SLOT_OF: Record<string, GearSlot> = {
-  mask: 'mask', masks: 'mask',
-  chest: 'chest', chests: 'chest', 'chest piece': 'chest', 'chest pieces': 'chest',
-  backpack: 'backpack', backpacks: 'backpack',
-  glove: 'gloves', gloves: 'gloves',
-  holster: 'holster', holsters: 'holster',
-  kneepad: 'knees', kneepads: 'knees', knees: 'knees',
+/** 對應部位 / The dataset's slot for a loot word, or null (see `loot-vocab.ts`). */
+export const gearSlotOf = (name: string): GearSlot | null => {
+  const ref = resolveLoot(name);
+  return ref.kind === 'slot' ? ref.slot : null;
 };
-
-/** 對應部位 / The dataset's slot for a loot word, or null. */
-export const gearSlotOf = (name: string): GearSlot | null => SLOT_OF[normName(name)] ?? null;
 
 export interface GearSlotDetail {
   slot: GearSlot;

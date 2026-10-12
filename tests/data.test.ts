@@ -179,7 +179,7 @@ describe('item names', () => {
    * Sets with no confirmed Chinese name yet. Listing them keeps the gap visible
    * while still failing on any set that becomes untranslated in future.
    */
-  const UNTRANSLATED_SETS = ['Ember Engine'];
+  const UNTRANSLATED_SETS: string[] = [];
 
   it('translates every generic set piece into Chinese', async () => {
     const { tItem, setLang } = await import('../src/i18n/index.ts');

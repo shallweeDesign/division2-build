@@ -3,25 +3,19 @@
  * class, exotics first, then named, then the regular ones.
  *
  * The loot source names classes loosely and in two forms — `Pistol` / `SMG`
- * as mission targets, `MMRs` / `Assault Rifles` in the vendor caches — so both
- * map onto the dataset's own `weaponType`.
+ * as mission targets, `MMRs` / `Assault Rifles` in the vendor caches — and
+ * `loot-vocab.ts` maps both onto the dataset's own `weaponType`.
  */
 import type { Weapon } from './types.ts';
-import { fixedLineFor, normName } from './set-detail.ts';
+import { fixedLineFor } from './set-detail.ts';
+import { resolveLoot } from './loot-vocab.ts';
 import type { CoreView, MinorView, SetData } from './set-detail.ts';
 
-const CLASS_OF: Record<string, string> = {
-  'assault rifle': 'Assault Rifle', 'assault rifles': 'Assault Rifle', ar: 'Assault Rifle', ars: 'Assault Rifle',
-  lmg: 'LMG', lmgs: 'LMG',
-  'marksman rifle': 'Marksman Rifle', 'marksman rifles': 'Marksman Rifle', mmr: 'Marksman Rifle', mmrs: 'Marksman Rifle',
-  pistol: 'Pistol', pistols: 'Pistol',
-  rifle: 'Rifle', rifles: 'Rifle',
-  shotgun: 'Shotgun', shotguns: 'Shotgun',
-  smg: 'SMG', smgs: 'SMG',
-};
-
 /** 對應武器類別 / The dataset's `weaponType` for a loot word, or null. */
-export const weaponClassOf = (name: string): string | null => CLASS_OF[normName(name)] ?? null;
+export const weaponClassOf = (name: string): string | null => {
+  const ref = resolveLoot(name);
+  return ref.kind === 'weapon' ? ref.weaponType : null;
+};
 
 export type WeaponTier = 'exotic' | 'named' | 'regular';
 

@@ -7,9 +7,13 @@
  * Mission names are deliberately empty for the same reason as `SKILL_ZH`: a
  * visibly English name beats a plausible wrong one. Fill them in from the
  * Google Sheet under kind `mission`, keyed by the source's English name.
+ *
+ * Loot words — targets and cache entries alike — are named from what
+ * `resolveLoot` says they are, so a new wording for a known thing ("Body
+ * Armor" for chest) gets its Chinese name with no table of its own.
  */
-import { ITEM_ZH, SET_ZH } from './names.ts';
-import { normName as norm } from '../model/set-detail.ts';
+import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
+import { looseKey, resolveLoot } from '../model/loot-vocab.ts';
 
 export const MISSION_ZH: Record<string, string> = {};
 
@@ -19,29 +23,8 @@ export const CACHE_TYPE_ZH: Record<string, string> = {
   Gear: '裝備',
 };
 
-/** 補給箱內容 / Cache contents: the source uses plural slot / weapon-class words. */
-export const CACHE_ITEM_ZH: Record<string, string> = {
-  ARs: '突擊步槍',
-  'Assault Rifles': '突擊步槍',
-  LMGs: '輕機槍',
-  MMRs: '射手步槍',
-  Pistols: '手槍',
-  Rifles: '步槍',
-  Shotguns: '霰彈槍',
-  SMGs: '衝鋒槍',
-  Masks: '面罩',
-  'Chest Pieces': '胸甲',
-  Backpacks: '背包',
-  Gloves: '手套',
-  Holsters: '槍套',
-  Kneepads: '護膝',
-};
-
-/**
- * 武器類別 / Now and then a mission targets a weapon class rather than a brand
- * (seen: `Pistol`, `SMG`). Same words as the planner's weapon types.
- */
-export const LOOT_TYPE_ZH: Record<string, string> = {
+/** 武器類別 / By the dataset's `weaponType`, as in the planner. */
+const WEAPON_TYPE_ZH: Record<string, string> = {
   'Assault Rifle': '突擊步槍',
   LMG: '輕機槍',
   'Marksman Rifle': '射手步槍',
@@ -51,18 +34,24 @@ export const LOOT_TYPE_ZH: Record<string, string> = {
   SMG: '衝鋒槍',
 };
 
-
-/** 依正規化鍵查表 / Look a name up by its normalised key (see `normName`). */
+/** 依寬鬆鍵查表 / Look a name up by its loose key (see `looseKey`). */
 function lookup(map: Record<string, string>, name: string): string | undefined {
   if (map[name]) return map[name];
-  const key = norm(name);
-  for (const [k, v] of Object.entries(map)) if (norm(k) === key) return v;
+  const key = looseKey(name);
+  for (const [k, v] of Object.entries(map)) if (looseKey(k) === key) return v;
   return undefined;
 }
 
-/** 目標戰利品名 / A loot target is a brand, a gear set, a weapon class, or now and then an item. */
-export const lootZh = (name: string) =>
-  lookup(SET_ZH, name) ?? lookup(ITEM_ZH, name) ?? lookup(LOOT_TYPE_ZH, name);
+/** 戰利品名 / The Chinese name for any loot word, target or cache entry. */
+export function lootZh(word: string): string | undefined {
+  const ref = resolveLoot(word);
+  switch (ref.kind) {
+    case 'set': return SET_ZH[ref.name] ?? ITEM_ZH[ref.name];
+    case 'weapon': return WEAPON_TYPE_ZH[ref.weaponType];
+    case 'slot': return SLOT_ZH[ref.slot];
+    default: return undefined;
+  }
+}
+
 export const missionZh = (name: string) => lookup(MISSION_ZH, name);
 export const cacheTypeZh = (name: string) => lookup(CACHE_TYPE_ZH, name);
-export const cacheItemZh = (name: string) => lookup(CACHE_ITEM_ZH, name);

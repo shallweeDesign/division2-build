@@ -495,6 +495,9 @@ function main() {
 
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, 'game-data.json'), JSON.stringify(data));
+  // 品牌／套裝名單 / Just the names, for the loot page: it has to recognise a
+  // brand in the daily list without downloading the whole dataset first.
+  writeFileSync(join(OUT, 'set-names.json'), JSON.stringify(sets.map((s) => s.name)));
 
   console.log(`✓ gear: ${GEAR_SLOTS.map((s) => `${s} ${data.gear[s].length}`).join(', ')}`);
   console.log(`✓ ${sets.filter((s) => s.kind === 'brand').length} brands, ${sets.filter((s) => s.kind === 'gearset').length} gear sets`);
