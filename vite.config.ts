@@ -9,13 +9,14 @@ import { defineConfig } from 'vite';
  */
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/lab/division2_builder/' : '/',
-  // 兩個頁面 / Two pages, each its own bundle: the loot page has no use for the
-  // planner's dataset and should not download it.
+  // 各頁獨立 / One bundle per page: the loot and collectibles pages have no use
+  // for the planner's dataset and should not download it.
   build: {
     rollupOptions: {
       input: {
         main: fileURLToPath(new URL('index.html', import.meta.url)),
         loot: fileURLToPath(new URL('loot/index.html', import.meta.url)),
+        collectibles: fileURLToPath(new URL('collectibles/index.html', import.meta.url)),
       },
     },
   },

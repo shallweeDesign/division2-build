@@ -573,3 +573,85 @@ $exotic: #ff4f3a;
   flex: none; font-size: .68rem; padding: 0 .35rem; margin-top: .15rem;
   color: $warn; border: 1px dashed rgba($warn, .6); border-radius: 2px;
 }
+
+// 收集品 / Collectibles page.
+.collect { display: grid; gap: 1rem; }
+
+.subtabs {
+  display: flex; flex-wrap: wrap; gap: .4rem;
+  .subtab {
+    padding: .35rem .8rem; border: 1px solid $line; border-radius: 3px;
+    color: $muted; text-decoration: none; font-size: .85rem;
+    &:hover { color: $text; border-color: $muted; }
+    &.active { color: $accent; border-color: $accent; background: rgba($accent, .08); }
+  }
+}
+
+.collect-body { display: grid; gap: 1.25rem; }
+
+.collect-summary {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem;
+  .collect-intro { margin: .35rem 0 0; color: $muted; max-width: 46rem; }
+}
+
+.collect-progress {
+  display: flex; align-items: center; gap: .6rem;
+  .collect-count { font-variant-numeric: tabular-nums; white-space: nowrap; }
+}
+.collect-bar {
+  width: 140px; height: 6px; background: $panel-2; border-radius: 3px; overflow: hidden;
+  .collect-bar-fill { display: block; height: 100%; width: 0; background: $accent; transition: width .2s; }
+}
+
+.collect-rules {
+  summary { cursor: pointer; }
+  ul { margin: .25rem 0 0; padding-left: 1.2rem; color: $muted; font-size: .86rem; line-height: 1.7; }
+  p { margin: .25rem 0 0; color: $muted; font-size: .86rem; }
+}
+
+.collect-stage .col-heading { margin: 0 0 .6rem; }
+
+.collect-list {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  @media (max-width: 420px) { grid-template-columns: 1fr; }
+}
+
+.collect-item {
+  display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+  background: $panel; border: 1px solid $line; border-radius: 3px;
+  &.found { border-color: rgba(#4fc08d, .55); }
+  &.found .collect-num { background: #4fc08d; color: $bg; }
+  &.found .collect-shot img { opacity: .55; }
+}
+
+.collect-shot {
+  display: block; aspect-ratio: 16 / 9; background: $panel-2;
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  // Until a screenshot exists, a short strip rather than thirty empty frames.
+  &.empty {
+    aspect-ratio: auto; height: 2.2rem;
+    display: grid; place-items: center; color: rgba($muted, .7); font-size: .76rem;
+    border-bottom: 1px dashed $line;
+  }
+}
+
+.collect-text { padding: .65rem .8rem .8rem; display: grid; gap: .35rem; align-content: start; }
+
+.collect-head {
+  display: flex; align-items: flex-start; gap: .5rem; cursor: pointer;
+  input { margin: .2rem 0 0; accent-color: #4fc08d; width: 1rem; height: 1rem; flex: none; }
+  .collect-num {
+    flex: none; font-size: .72rem; font-weight: 700; padding: .05rem .35rem; margin-top: .1rem;
+    border-radius: 2px; background: $panel-2; color: $accent; font-variant-numeric: tabular-nums;
+  }
+  .collect-name { font-weight: 600; }
+  .collect-name small { display: block; color: $muted; font-weight: 400; font-size: .74rem; }
+}
+
+.collect-where { margin: 0; font-size: .86rem; line-height: 1.6; }
+.collect-tip {
+  margin: 0; font-size: .8rem; line-height: 1.55; color: $warn;
+  padding-left: .5rem; border-left: 2px solid rgba($warn, .5);
+}
+.collect-link { font-size: .78rem; color: $accent; justify-self: start; }
