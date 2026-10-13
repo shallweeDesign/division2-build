@@ -18,4 +18,12 @@ export interface FirebaseWebConfig {
   messagingSenderId?: string;
 }
 
-export const FIREBASE_CONFIG: FirebaseWebConfig | null = null;
+export const FIREBASE_CONFIG: FirebaseWebConfig | null = {
+  apiKey: 'AIzaSyAyMNkBWsFKIvYT1FwnKBalpRzTGcwkwXM',
+  authDomain: 'jdivision2-be285.firebaseapp.com',
+  projectId: 'jdivision2-be285',
+  storageBucket: 'jdivision2-be285.firebasestorage.app',
+  messagingSenderId: '420852728103',
+  appId: '1:420852728103:web:b13ceb8f80a21d09e4e902',
+  // measurementId left out: the site does not load Analytics.
+};
