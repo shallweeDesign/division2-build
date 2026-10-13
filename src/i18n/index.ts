@@ -123,8 +123,8 @@ const UI = {
   navLoot: { 'zh-tw': '每日戰利品', en: 'Daily loot' },
   navCollectibles: { 'zh-tw': '收集品', en: 'Collectibles' },
   collectBanner: {
-    'zh-tw': '收集品位置整理自玩家攻略，非官方資料；截圖為本站自行拍攝。',
-    en: 'Collectible locations are compiled from player guides, not official data; screenshots are our own.',
+    'zh-tw': '收集品位置整理自玩家攻略，非官方資料。',
+    en: 'Collectible locations are compiled from player guides, not official data.',
   },
   beaversTab: { 'zh-tw': '破雨行動・河狸', en: 'Broken Rain · Beavers' },
   beaversTitle: { 'zh-tw': '破雨行動：30 隻河狸', en: 'Broken Rain: the 30 beavers' },
