@@ -5,6 +5,8 @@ import type { Lang } from './i18n/index.ts';
 import { el } from './ui/dom.ts';
 import { renderCollectiblesPanel } from './ui/collectibles-panel.ts';
 import { renderHeader } from './ui/site-header.ts';
+import { onUserData } from './cloud/user-data.ts';
+import { startCloud } from './cloud/sync.ts';
 
 const app = document.getElementById('app')!;
 const header = el('header', { class: 'app-header' });
@@ -28,3 +30,11 @@ window.addEventListener('hashchange', () => { renderCollectiblesPanel(root); win
 
 setLang(lang() as Lang);
 renderAll();
+
+// Ticks or language changed in another browser (or merged in on sign-in).
+onUserData((d, source) => {
+  if (source !== 'cloud') return;
+  if (d.lang && d.lang !== lang()) setLang(d.lang, { persist: false });
+  renderAll();
+});
+startCloud();

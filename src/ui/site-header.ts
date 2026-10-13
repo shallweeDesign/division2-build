@@ -7,6 +7,7 @@
  */
 import { t } from '../i18n/index.ts';
 import { el } from './dom.ts';
+import { accountWidget } from './account.ts';
 
 export type Page = 'build' | 'loot' | 'collectibles';
 
@@ -27,6 +28,6 @@ export function renderHeader(header: HTMLElement, page: Page, actions: (Node | n
     el('nav', { class: 'tabs' }, [
       tab('build', t('navBuild')), tab('loot', t('navLoot')), tab('collectibles', t('navCollectibles')),
     ]),
-    el('div', { class: 'header-actions' }, actions),
+    el('div', { class: 'header-actions' }, [...actions, accountWidget()]),
   );
 }

@@ -655,3 +655,44 @@ $exotic: #ff4f3a;
   padding-left: .5rem; border-left: 2px solid rgba($warn, .5);
 }
 .collect-link { font-size: .78rem; color: $accent; justify-self: start; }
+
+// 帳號 / Header sign-in control.
+.account { display: flex; align-items: center; gap: .5rem; }
+.account:empty { display: none; }
+.account-status { font-size: .8rem; color: $muted; &.error { color: $warn; cursor: help; } }
+.account-user {
+  position: relative; display: inline-flex; cursor: default;
+  img, .account-initial { width: 28px; height: 28px; border-radius: 50%; border: 1px solid $line; }
+  .account-initial { display: grid; place-items: center; background: $panel-2; font-size: .8rem; }
+  .account-synced {
+    position: absolute; right: -3px; bottom: -3px; width: 13px; height: 13px; border-radius: 50%;
+    display: grid; place-items: center; font-size: .55rem; background: #4fc08d; color: $bg;
+  }
+}
+
+// 我的配裝 / Saved builds on the planner page.
+.saved-builds {
+  summary { cursor: pointer; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary h2 { display: inline; }
+  summary h2::before { content: '▸ '; color: $muted; }
+  &[open] summary h2::before { content: '▾ '; }
+}
+.saved-actions {
+  display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0 .5rem;
+  .saved-name {
+    flex: 1 1 200px; min-width: 0; padding: .35rem .6rem; font: inherit;
+    background: $panel-2; color: $text; border: 1px solid $line; border-radius: 3px;
+    &:focus { outline: none; border-color: $accent; }
+  }
+}
+.saved-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.saved-row {
+  display: flex; align-items: center; gap: .5rem; padding: .4rem .6rem;
+  background: $panel-2; border: 1px solid transparent; border-radius: 3px;
+  &.current { border-color: rgba($accent, .55); }
+  .saved-row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .saved-row-name small { display: block; color: $muted; font-size: .72rem; }
+  .saved-delete.confirming { color: $offensive; border-color: $offensive; }
+}
+.saved-where { margin: .5rem 0 0; font-size: .76rem; }

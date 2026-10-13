@@ -12,6 +12,8 @@ import { LOOT_PAGE } from './model/loot.ts';
 import { el } from './ui/dom.ts';
 import { renderLootPanel } from './ui/loot-panel.ts';
 import { renderHeader } from './ui/site-header.ts';
+import { onUserData } from './cloud/user-data.ts';
+import { startCloud } from './cloud/sync.ts';
 
 const app = document.getElementById('app')!;
 const header = el('header', { class: 'app-header' });
@@ -36,6 +38,12 @@ function renderAll() {
 
 setLang(lang() as Lang);
 renderAll();
+
+// The only thing here that another browser can change is the language.
+onUserData((d, source) => {
+  if (source === 'cloud' && d.lang && d.lang !== lang()) { setLang(d.lang, { persist: false }); renderAll(); }
+});
+startCloud();
 
 // Mission names come from the sheet (kind `mission`), so re-render if it lands.
 void loadOverrides().then((result) => {

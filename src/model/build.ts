@@ -82,3 +82,44 @@ export const emptyBuild = (): BuildState => ({
   spec: { id: null, talents: [] },
   skills: Array.from({ length: SKILL_SLOTS }, () => null),
 });
+
+/**
+ * 修整存檔 / Rebuild a saved build against today's dataset.
+ *
+ * A build saved weeks ago may name an item, weapon or skill the dataset has
+ * since dropped or renamed. Rather than let a panel trip over an id it cannot
+ * find, anything unknown is emptied, and the shape is filled out from
+ * `emptyBuild` so an older save missing a field still loads.
+ */
+export function sanitizeBuild(
+  data: { gear: Record<GearSlot, { id: string }[]>; weapons: { id: string }[];
+    specializations: { id: SpecializationId }[]; skills: { name: string }[] },
+  raw: unknown,
+): BuildState {
+  const out = emptyBuild();
+  if (!raw || typeof raw !== 'object') return out;
+  const r = raw as Partial<BuildState>;
+
+  for (const slot of GEAR_SLOTS) {
+    const s = r.gear?.[slot];
+    if (s && (s.itemId === null || data.gear[slot].some((i) => i.id === s.itemId))) out.gear[slot] = { ...emptySlot(), ...s };
+  }
+  for (const slot of WEAPON_SLOTS) {
+    const w = r.weapons?.[slot];
+    if (w && (w.weaponId === null || data.weapons.some((x) => x.id === w.weaponId))) out.weapons[slot] = { ...emptyWeapon(), ...w };
+  }
+  for (const id of WATCH_STAT_IDS) {
+    const v = r.watch?.[id];
+    if (typeof v === 'number' && Number.isFinite(v)) out.watch[id] = v;
+  }
+  if (r.spec?.id && data.specializations.some((s) => s.id === r.spec!.id)) {
+    out.spec = { id: r.spec.id, talents: Array.isArray(r.spec.talents) ? r.spec.talents.filter((x) => typeof x === 'string') : [] };
+  }
+  if (Array.isArray(r.skills)) {
+    out.skills = out.skills.map((_, i) => {
+      const name = r.skills![i];
+      return typeof name === 'string' && data.skills.some((s) => s.name === name) ? name : null;
+    });
+  }
+  return out;
+}

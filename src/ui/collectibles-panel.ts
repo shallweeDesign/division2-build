@@ -4,6 +4,9 @@
  * Sub-tabs are a hash route (`#broken-rain-beavers`), so each can be linked
  * to directly. A new collection is a new entry in `COLLECTIONS`.
  *
+ * Progress lives in the player's data, so it follows them between browsers
+ * once they sign in.
+ *
  * Screenshots are the owner's own: drop `01.jpg` … `30.jpg` (or .png/.webp)
  * into `src/assets/collectibles/<collection>/` and rebuild. A location with no
  * file shows an empty frame and the guide link instead.
@@ -14,6 +17,7 @@ import {
 } from '../data/collectibles/broken-rain-beavers.ts';
 import type { Beaver } from '../data/collectibles/broken-rain-beavers.ts';
 import { el } from './dom.ts';
+import { updateUserData, userData } from '../cloud/user-data.ts';
 
 const fill = (s: string, vars: Record<string, string>) =>
   s.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '');
@@ -33,20 +37,20 @@ function shotFor(collection: string, n: number): string | null {
 }
 
 /**
- * 進度 / Which locations this viewer has ticked, kept in their own browser.
- * Storage can be missing or throw (private mode, blocked site data), so every
- * access is guarded and the page works without it.
+ * 進度 / Which locations this player has ticked. Kept in their data
+ * (`cloud/user-data.ts`): in this browser, and in their account once signed in.
  */
 function progress(collection: string) {
-  const key = `d2b.collect.${collection}`;
-  let found = new Set<number>();
-  try { found = new Set(JSON.parse(localStorage.getItem(key) ?? '[]') as number[]); } catch { /* none */ }
-  const save = () => { try { localStorage.setItem(key, JSON.stringify([...found])); } catch { /* ignore */ } };
+  const list = () => userData().collectibles[collection] ?? [];
   return {
-    has: (n: number) => found.has(n),
-    toggle: (n: number) => { if (found.has(n)) found.delete(n); else found.add(n); save(); },
-    clear: () => { found = new Set(); save(); },
-    get size() { return found.size; },
+    has: (n: number) => list().includes(n),
+    toggle: (n: number) => updateUserData((d) => {
+      const cur = new Set(d.collectibles[collection] ?? []);
+      if (cur.has(n)) cur.delete(n); else cur.add(n);
+      d.collectibles[collection] = [...cur];
+    }),
+    clear: () => updateUserData((d) => { d.collectibles[collection] = []; }),
+    get size() { return list().length; },
   };
 }
 

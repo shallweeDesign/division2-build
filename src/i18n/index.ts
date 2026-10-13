@@ -3,6 +3,7 @@ import { STAT_ZH } from './stats.ts';
 import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
 import { talentZh } from './talents.ts';
 import { SKILL_ZH } from './skills.ts';
+import { updateUserData, userData } from '../cloud/user-data.ts';
 
 export type Lang = 'zh-tw' | 'en';
 
@@ -122,6 +123,27 @@ const UI = {
   navBuild: { 'zh-tw': '配裝', en: 'Build' },
   navLoot: { 'zh-tw': '每日戰利品', en: 'Daily loot' },
   navCollectibles: { 'zh-tw': '收集品', en: 'Collectibles' },
+  signIn: { 'zh-tw': '以 Google 登入', en: 'Sign in with Google' },
+  signOut: { 'zh-tw': '登出', en: 'Sign out' },
+  syncing: { 'zh-tw': '同步中…', en: 'Syncing…' },
+  synced: { 'zh-tw': '已同步到你的帳號', en: 'Synced to your account' },
+  syncError: { 'zh-tw': '同步失敗', en: 'Sync failed' },
+  savedTitle: { 'zh-tw': '我的配裝', en: 'My builds' },
+  savedName: { 'zh-tw': '配裝名稱', en: 'Build name' },
+  savedNamePlaceholder: { 'zh-tw': '配裝 {n}', en: 'Build {n}' },
+  savedSaveNew: { 'zh-tw': '儲存為新配裝', en: 'Save as new' },
+  savedOverwrite: { 'zh-tw': '更新「{n}」', en: 'Update “{n}”' },
+  savedLoad: { 'zh-tw': '載入', en: 'Load' },
+  savedDelete: { 'zh-tw': '刪除', en: 'Delete' },
+  savedConfirmDelete: { 'zh-tw': '確定刪除？', en: 'Really delete?' },
+  savedEmpty: { 'zh-tw': '還沒有儲存的配裝。', en: 'No saved builds yet.' },
+  savedFull: { 'zh-tw': '最多儲存 {n} 套，請先刪除一些。', en: 'Up to {n} builds; delete some first.' },
+  savedWhereLocal: { 'zh-tw': '配裝存在這個瀏覽器裡。', en: 'Builds are kept in this browser.' },
+  savedWhereSignIn: {
+    'zh-tw': '配裝存在這個瀏覽器裡；登入後可在其他瀏覽器使用。',
+    en: 'Builds are kept in this browser; sign in to use them in other browsers too.',
+  },
+  savedWhereCloud: { 'zh-tw': '已同步到你的帳號，其他瀏覽器登入後也看得到。', en: 'Synced to your account — available in any browser you sign in to.' },
   collectBanner: {
     'zh-tw': '收集品位置整理自玩家攻略，非官方資料。',
     en: 'Collectible locations are compiled from player guides, not official data.',
@@ -239,19 +261,22 @@ const UI = {
   },
 } as const;
 
-const KEY = 'd2b.lang';
-
-/** Storage and the DOM are absent under test, so both accesses are optional. */
-const store: Pick<Storage, 'getItem' | 'setItem'> | null =
-  typeof localStorage === 'undefined' ? null : localStorage;
-
-let current: Lang = (store?.getItem(KEY) as Lang | null) ?? 'zh-tw';
+/**
+ * 語言 / Kept in the player's data (`cloud/user-data.ts`), so it follows them
+ * to another browser once they sign in. Storage and the DOM are absent under
+ * test; the data module guards the one and this guards the other.
+ */
+let current: Lang = userData().lang ?? 'zh-tw';
 
 export const lang = () => current;
 
-export function setLang(next: Lang) {
+/**
+ * Switch language. `persist: false` is for a change that came from the
+ * player's account: saving it again would write straight back to the cloud.
+ */
+export function setLang(next: Lang, { persist = true } = {}) {
   current = next;
-  store?.setItem(KEY, next);
+  if (persist && userData().lang !== next) updateUserData((d) => { d.lang = next; });
   if (typeof document !== 'undefined') {
     document.documentElement.lang = next === 'zh-tw' ? 'zh-Hant' : 'en';
   }

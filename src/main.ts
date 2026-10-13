@@ -13,6 +13,9 @@ import { renderDamagePanel } from './ui/damage-panel.ts';
 import { renderSpecPanel } from './ui/spec-panel.ts';
 import { renderSkillPanel } from './ui/skill-panel.ts';
 import { renderHeader } from './ui/site-header.ts';
+import { renderSavedBuildsPanel } from './ui/saved-builds-panel.ts';
+import { onUserData } from './cloud/user-data.ts';
+import { onCloudState, startCloud } from './cloud/sync.ts';
 import { reset, subscribe } from './ui/store.ts';
 import { el } from './ui/dom.ts';
 import { loadOverrides } from './i18n/overrides.ts';
@@ -48,7 +51,8 @@ const weaponHeading = el('h2', { class: 'col-heading' }, []);
 const gearHeading = el('h2', { class: 'col-heading' }, []);
 buildCol.append(weaponHeading, weaponCol, gearHeading, gearCol, skillCol, specCol);
 layout.append(buildCol, summaryCol);
-app.append(header, banner, watch, layout, recommended);
+const saved = el('section', { class: 'saved' });
+app.append(header, banner, saved, watch, layout, recommended);
 
 function renderChrome() {
   renderHeader(header, 'build', [
@@ -69,6 +73,7 @@ function renderChrome() {
 
 function renderAll() {
   renderChrome();
+  renderSavedBuildsPanel(saved, data);
   renderGearPanel(gearCol, data);
   renderWeaponPanel(weaponCol, data);
   renderWatchPanel(watch, data);
@@ -94,6 +99,16 @@ subscribe((scope) => {
 
 setLang(lang() as Lang);
 renderAll();
+
+// 帳號 / Another browser changed the player's data: a language switch redraws
+// everything, anything else only the saved-builds list. The build on screen
+// is never replaced from under the player.
+onUserData((d, source) => {
+  if (source === 'cloud' && d.lang && d.lang !== lang()) { setLang(d.lang, { persist: false }); renderAll(); return; }
+  renderSavedBuildsPanel(saved, data);
+});
+onCloudState(() => renderSavedBuildsPanel(saved, data));
+startCloud();
 
 // 線上譯名 / Names edited in the sheet arrive after the page is already up:
 // the fetch crosses to Google and is not worth a blank screen. If it lands,
