@@ -12,6 +12,7 @@
  * The stage headings are ours, grouping the route by its bosses for scanning;
  * they are not names the game uses.
  */
+import type { Collection } from './types.ts';
 
 export const BEAVER_GUIDE = 'https://itemlevel.net/the-division-2-all-beaver-locations-beaver-backpack-trophy-guide/';
 
@@ -144,3 +145,24 @@ export const BEAVER_RULES = [
 ];
 
 export const BEAVER_COUNT = BEAVER_STAGES.reduce((n, s) => n + s.beavers.length, 0);
+
+/** 收集品頁用 / The beavers as one entry on the collectibles page. */
+export const BEAVERS: Collection = {
+  id: 'broken-rain-beavers',
+  tab: { zh: '破雨行動・河狸', en: 'Broken Rain · Beavers' },
+  title: { zh: '破雨行動：30 隻河狸', en: 'Broken Rain: the 30 beavers' },
+  intro: {
+    zh: '在「破雨」突襲中射到全部 30 隻河狸，可獲得 Steely 河狸背包飾品。以下依路線順序排列。',
+    en: 'Shoot all 30 beavers in the Broken Rain incursion for the Steely beaver backpack trophy. Listed in route order.',
+  },
+  type: { zh: '突襲', en: 'Incursion' },
+  reward: { zh: 'Steely 河狸背包飾品', en: 'Steely beaver backpack trophy' },
+  guides: [{ name: 'Item Level Gaming', url: BEAVER_GUIDE }],
+  source: {
+    zh: '地點與順序依據 Item Level Gaming 的攻略（2026-08-13 更新），說明文字為本站改寫。',
+    en: 'Locations and order follow the Item Level Gaming guide (updated 2026-08-13); the wording here is our own.',
+  },
+  rules: BEAVER_RULES,
+  stages: BEAVER_STAGES.map((s) => ({ zh: s.zh, en: s.en, items: s.beavers })),
+  link: beaverAnchor,
+};

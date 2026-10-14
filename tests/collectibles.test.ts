@@ -1,6 +1,10 @@
 /** 收集品 / The beaver list: complete, in order, and linked to real anchors. */
 import { describe, expect, it } from 'vitest';
 import { BEAVER_COUNT, BEAVER_GUIDE, BEAVER_STAGES, beaverAnchor } from '../src/data/collectibles/broken-rain-beavers.ts';
+import { COLLECTIONS } from '../src/data/collectibles/index.ts';
+import { DARK_HOURS } from '../src/data/collectibles/raid-dark-hours.ts';
+import { IRON_HORSE } from '../src/data/collectibles/raid-iron-horse.ts';
+import { itemsOf } from '../src/data/collectibles/types.ts';
 
 /** Section ids on the guide page, as captured on 2026-10-13. */
 const GUIDE_IDS = [
@@ -53,5 +57,37 @@ describe('broken rain beavers', () => {
       expect(b.zh, String(b.n)).toBeTruthy();
       expect(b.where.length, String(b.n)).toBeGreaterThan(10);
     }
+  });
+});
+
+describe('collections', () => {
+  it('have unique ids, and every item a unique number and directions', () => {
+    expect(new Set(COLLECTIONS.map((c) => c.id)).size).toBe(COLLECTIONS.length);
+    for (const c of COLLECTIONS) {
+      const items = itemsOf(c);
+      expect(new Set(items.map((i) => i.n)).size, c.id).toBe(items.length);
+      for (const i of items) {
+        expect(i.zh, `${c.id} ${i.n}`).toBeTruthy();
+        expect(i.where.length, `${c.id} ${i.n}`).toBeGreaterThan(10);
+        expect(c.guides.some((g) => c.link(i).startsWith(g.url.split('#')[0]!)), `${c.id} ${i.n}`).toBe(true);
+      }
+    }
+  });
+
+  it('keeps the beavers at the id their saved progress uses', () => {
+    expect(COLLECTIONS[0]!.id).toBe('broken-rain-beavers');
+    expect(itemsOf(COLLECTIONS[0]!)).toHaveLength(30);
+  });
+
+  it('gives each raid the five keys its end chest takes', () => {
+    for (const raid of [DARK_HOURS, IRON_HORSE]) {
+      expect(itemsOf(raid).filter((i) => i.kind === 'key'), raid.id).toHaveLength(5);
+    }
+  });
+
+  it('lists one trophy in Dark Hours and five in Iron Horse, by name', () => {
+    expect(itemsOf(DARK_HOURS).filter((i) => i.kind === 'trophy')).toHaveLength(1);
+    expect(itemsOf(IRON_HORSE).filter((i) => i.kind === 'trophy').map((i) => i.en))
+      .toEqual(['Breakthrough', 'Molten', 'High Ground', 'Iron Horse', 'Old Guard']);
   });
 });

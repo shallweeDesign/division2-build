@@ -656,6 +656,38 @@ $exotic: #ff4f3a;
 }
 .collect-link { font-size: .78rem; color: $accent; justify-self: start; }
 
+// Echo、飾品、鑰匙 / Non-numbered items get a word badge in their own colour.
+.collect-item.kind-echo .collect-num { color: #7fb6e8; }
+.collect-item.kind-trophy .collect-num { color: #e8c46a; }
+.collect-item.kind-key .collect-num { color: #c9a0f0; white-space: nowrap; }
+
+// 總覽 / One card per collection.
+.collect-index {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.collect-card {
+  a {
+    display: grid; gap: .35rem; height: 100%; padding: .85rem .95rem; box-sizing: border-box;
+    background: $panel; border: 1px solid $line; border-radius: 3px; color: $text; text-decoration: none;
+    transition: border-color .15s;
+    &:hover, &:focus-visible { border-color: $accent; }
+  }
+  &.complete a { border-color: rgba(#4fc08d, .55); }
+  &.complete .collect-bar-fill { background: #4fc08d; }
+}
+.collect-card-type {
+  justify-self: start; font-size: .7rem; letter-spacing: .04em; padding: .05rem .4rem;
+  border: 1px solid $line; border-radius: 2px; color: $muted;
+}
+.collect-card-name { font-size: 1.05rem; }
+.collect-card-reward { font-size: .82rem; color: #e8c46a; }
+.collect-card-counts { font-size: .8rem; color: $muted; }
+.collect-card-progress {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-top: .3rem;
+  .collect-count { font-size: .8rem; font-variant-numeric: tabular-nums; }
+}
+
 // 帳號 / Header sign-in control.
 .account { display: flex; align-items: center; gap: .5rem; }
 .account:empty { display: none; }
