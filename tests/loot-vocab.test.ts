@@ -8,6 +8,8 @@ describe('resolveLoot', () => {
     expect(resolveLoot('Chest Pieces')).toEqual({ kind: 'slot', slot: 'chest' });
     expect(resolveLoot('Body Armor')).toEqual({ kind: 'slot', slot: 'chest' });
     expect(resolveLoot('Knee Pads')).toEqual({ kind: 'slot', slot: 'knees' });
+    expect(resolveLoot('Gear Mods')).toEqual({ kind: 'mod', mod: 'gear' });
+    expect(resolveLoot('Skill Mods')).toEqual({ kind: 'mod', mod: 'skill' });
   });
 
   it('ignores case, punctuation, spacing and a plural s', () => {

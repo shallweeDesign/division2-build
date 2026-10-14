@@ -5,7 +5,7 @@
  * Pieces" in a vendor cache and "Body Armor" as a mission target; a brand
  * loses its trailing dot ("Walker, Harris & Co"). Every word on the page —
  * mission target or cache entry — is resolved here, to a brand or gear set,
- * a weapon class or a gear slot, and the Chinese name and the popup both
+ * a weapon class, a gear slot or a mod category, and the Chinese name and the popup both
  * follow from that. A word nothing here knows is `unknown`, and the page
  * shows it as such rather than offering a popup that can only fail.
  *
@@ -24,7 +24,11 @@ export type LootRef =
   | { kind: 'set'; name: string }
   | { kind: 'weapon'; weaponType: string }
   | { kind: 'slot'; slot: GearSlot }
+  | { kind: 'mod'; mod: ModKind }
   | { kind: 'unknown' };
+
+/** 模組類別 / Mod categories the source has offered as a target. */
+export type ModKind = 'gear' | 'skill';
 
 /** 寬鬆鍵 / Lower case, letters and digits only. */
 export const looseKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -54,12 +58,21 @@ const SLOT_WORDS: Record<GearSlot, string[]> = {
   knees: ['Kneepads', 'Knee Pads', 'Kneepad', 'Knees'],
 };
 
+/** 模組 / Mod-category words. Named, but there is no popup for them. */
+const MOD_WORDS: Record<ModKind, string[]> = {
+  gear: ['Gear Mod'],
+  skill: ['Skill Mod'],
+};
+
 const index = new Map<string, LootRef>();
 for (const [weaponType, words] of Object.entries(WEAPON_WORDS)) {
   for (const w of words) index.set(looseKey(w), { kind: 'weapon', weaponType });
 }
 for (const [slot, words] of Object.entries(SLOT_WORDS) as [GearSlot, string[]][]) {
   for (const w of words) index.set(looseKey(w), { kind: 'slot', slot });
+}
+for (const [mod, words] of Object.entries(MOD_WORDS) as [ModKind, string[]][]) {
+  for (const w of words) index.set(looseKey(w), { kind: 'mod', mod });
 }
 
 /**

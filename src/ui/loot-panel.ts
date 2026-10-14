@@ -54,7 +54,10 @@ function detailButton(source: string, label: Node, title: string, cls = '') {
  */
 function lootItem(word: string, cls: string) {
   const label = name(word, lootZh);
-  if (resolveLoot(word).kind === 'unknown') {
+  const ref = resolveLoot(word);
+  // A mod category has a name but nothing in the dataset to list.
+  if (ref.kind === 'mod') return el('span', { class: `loot-plain ${cls}` }, [label]);
+  if (ref.kind === 'unknown') {
     return el('span', { class: `loot-unknown ${cls}`, title: t('lootUnknownHint') }, [
       label, el('span', { class: 'loot-unknown-tag' }, [t('lootUnknown')]),
     ]);

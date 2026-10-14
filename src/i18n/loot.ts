@@ -14,6 +14,7 @@
  */
 import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
 import { looseKey, resolveLoot } from '../model/loot-vocab.ts';
+import type { ModKind } from '../model/loot-vocab.ts';
 
 export const MISSION_ZH: Record<string, string> = {};
 
@@ -34,6 +35,12 @@ const WEAPON_TYPE_ZH: Record<string, string> = {
   SMG: '衝鋒槍',
 };
 
+/** 模組類別 / As the game's zh-TW client names them (confirmed by the owner, 2026-10-14). */
+const MOD_ZH: Record<ModKind, string> = {
+  gear: '裝備模組',
+  skill: '技能配件',
+};
+
 /** 依寬鬆鍵查表 / Look a name up by its loose key (see `looseKey`). */
 function lookup(map: Record<string, string>, name: string): string | undefined {
   if (map[name]) return map[name];
@@ -49,6 +56,7 @@ export function lootZh(word: string): string | undefined {
     case 'set': return SET_ZH[ref.name] ?? ITEM_ZH[ref.name];
     case 'weapon': return WEAPON_TYPE_ZH[ref.weaponType];
     case 'slot': return SLOT_ZH[ref.slot];
+    case 'mod': return MOD_ZH[ref.mod];
     default: return undefined;
   }
 }
