@@ -87,8 +87,17 @@ const sets = new Map((setNames as string[]).map((n) => [looseKey(n), n]));
  */
 export const LOOT_ALIAS: Record<string, string> = {};
 
+/**
+ * 品牌加「Gear」/ The source sometimes tacks "Gear" onto a brand ("Shiny
+ * Monkey Gear" for Shiny Monkey). Tried only after the full word misses, so a
+ * brand whose own name ends in Gear ("Yaahl Gear") still matches as itself.
+ */
+const withoutGear = (key: string) => (key.endsWith('gear') ? key.slice(0, -4) : '');
+
 function direct(word: string): LootRef {
-  for (const k of variants(looseKey(word))) {
+  const key = looseKey(word);
+  const trimmed = withoutGear(key);
+  for (const k of [...variants(key), ...(trimmed ? [trimmed] : [])]) {
     const set = sets.get(k);
     if (set) return { kind: 'set', name: set };
     const hit = index.get(k);

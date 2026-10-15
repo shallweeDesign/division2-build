@@ -21,6 +21,9 @@ describe('resolveLoot', () => {
 
   it('finds brands and sets by the dataset name, whatever the punctuation', () => {
     expect(resolveLoot('Walker, Harris & Co')).toEqual({ kind: 'set', name: 'Walker, Harris & Co.' });
+    expect(resolveLoot('Shiny Monkey Gear')).toEqual({ kind: 'set', name: 'Shiny Monkey' });
+    expect(resolveLoot('Yaahl Gear')).toEqual({ kind: 'set', name: 'Yaahl Gear' });
+    expect(resolveLoot('Gear')).toEqual({ kind: 'unknown' });
     expect(resolveLoot('Legatus S.p.A.')).toMatchObject({ kind: 'set' });
     expect(resolveLoot('ortiz reficere')).toMatchObject({ kind: 'set' });
     expect(resolveLoot('Ember Engine')).toEqual({ kind: 'set', name: 'Ember Engine' });
