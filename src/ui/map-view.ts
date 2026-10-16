@@ -2,8 +2,11 @@
  * 地圖頁 / The D.C. map: missions, strongholds and the Red Moon altars on a
  * real-world base map, with today's targeted loot on the missions it drops in.
  *
- * Base map: OpenFreeMap's dark style (OpenStreetMap data, no key). MapLibre
- * draws it; the pins are plain DOM markers — there are only a few dozen.
+ * Base map: OpenStreetMap's standard raster tiles, inverted, desaturated and
+ * dimmed in the raster layer's paint into a dark tactical look. They are
+ * ~40 KB a tile; OpenFreeMap's vector tiles over central D.C. were 270-510 KB
+ * each and took 10 s and more to fill the first view. The pins are plain DOM
+ * markers — there are only a few dozen. Outside the game's D.C. is masked.
  *
  * Altar ticks are per day (they respawn at the 08:00 UTC reset) and per
  * browser, kept in localStorage under that day's date, so yesterday's ticks
@@ -20,11 +23,32 @@ import { lootZh, missionZh } from '../i18n/loot.ts';
 import { looseKey } from '../model/loot-vocab.ts';
 import { loadLoot, localClock, nextReset, rotationDate } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
-import { ALTARS, DISTRICTS, MAP_CENTER, MISSIONS, RED_MOON, STRONGHOLDS } from '../data/map/places.ts';
+import { ALTARS, DISTRICTS, GAME_AREA, MAP_BOUNDS, MAP_CENTER, MISSIONS, RED_MOON, STRONGHOLDS } from '../data/map/places.ts';
 import type { MapPlace, PlaceKind } from '../data/map/places.ts';
 import { el } from './dom.ts';
 
-const STYLE = 'https://tiles.openfreemap.org/styles/dark';
+const STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  // Only the district names need glyphs; OpenFreeMap serves them without a key.
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    },
+  },
+  layers: [
+    { id: 'background', type: 'background', paint: { 'background-color': '#0b0d10' } },
+    {
+      id: 'osm', type: 'raster', source: 'osm',
+      // brightness-min above max inverts; 0.5 → 0 keeps it near black.
+      paint: { 'raster-saturation': -1, 'raster-brightness-min': 0.5, 'raster-brightness-max': 0, 'raster-contrast': 0.15 },
+    },
+  ],
+};
 maplibregl.setWorkerUrl(workerUrl);
 
 const fill = (s: string, vars: Record<string, string>) =>
@@ -120,7 +144,17 @@ function addDistricts() {
       features: DISTRICTS.map((d) => ({ type: 'Feature', properties: { name: d.name }, geometry: { type: 'Point', coordinates: centre(d.ring) } })),
     },
   });
-  map.addLayer({ id: 'district-fill', type: 'fill', source: 'districts', paint: { 'fill-color': '#ff6a13', 'fill-opacity': 0.04 } });
+  // Everything outside the game's D.C., darkened; the world with the game area cut out.
+  map.addSource('outside', {
+    type: 'geojson',
+    data: {
+      type: 'Feature', properties: {},
+      geometry: { type: 'Polygon', coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]], GAME_AREA] },
+    },
+  });
+  map.addLayer({ id: 'outside-mask', type: 'fill', source: 'outside', paint: { 'fill-color': '#050607', 'fill-opacity': 0.82 } });
+  map.addLayer({ id: 'outside-edge', type: 'line', source: 'outside', paint: { 'line-color': '#ff6a13', 'line-opacity': 0.5, 'line-width': 1.5 } });
+  map.addLayer({ id: 'district-fill', type: 'fill', source: 'districts', paint: { 'fill-color': '#ff6a13', 'fill-opacity': 0.02 } });
   map.addLayer({
     id: 'district-line', type: 'line', source: 'districts',
     paint: { 'line-color': '#e8e2d6', 'line-opacity': 0.55, 'line-width': 1.2, 'line-dasharray': [3, 2] },
@@ -252,7 +286,9 @@ export function renderMapPage(root: HTMLElement) {
     panel = el('aside', { class: 'map-panel' });
     const canvas = el('div', { class: 'map-canvas' });
     root.replaceChildren(canvas, panel);
-    map = new maplibregl.Map({ container: canvas, style: STYLE, center: MAP_CENTER, zoom: 13.4, minZoom: 11, maxZoom: 18 });
+    map = new maplibregl.Map({
+      container: canvas, style: STYLE, center: MAP_CENTER, zoom: 13.4, minZoom: 12, maxZoom: 18, maxBounds: MAP_BOUNDS,
+    });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     map.on('load', () => { addDistricts(); placeMarkers(); });
     void loadLoot().then((snap) => { loot = snap; placeMarkers(); renderPanel(panel!); });

@@ -137,6 +137,17 @@ export const DISTRICTS: District[] = [
   { name: 'Capitol Hill', ring: box(XC, 38.8840, XE, 38.8960) },
 ];
 
+/**
+ * 遊戲範圍 / The outline of the districts above, clockwise, for the mask
+ * that darkens everything outside the game's D.C.
+ */
+export const GAME_AREA: [number, number][] = [
+  [W, N], [-77.0110, N], [-77.0110, 38.8960], [XE, 38.8960], [XE, 38.8840], [XC, 38.8840], [XC, S], [W, S], [W, N],
+];
+
+/** How far the map may pan: the game area plus the zoo, the Pentagon and Roosevelt Island. */
+export const MAP_BOUNDS: [[number, number], [number, number]] = [[-77.085, 38.862], [-76.988, 38.938]];
+
 /** Point-in-polygon (ray casting), for the tests and nothing else yet. */
 export function inRing([lng, lat]: [number, number], ring: [number, number][]) {
   let inside = false;
