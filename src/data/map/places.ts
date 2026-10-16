@@ -1,0 +1,106 @@
+/**
+ * 地圖地點 / What the map page pins: main missions, strongholds and this
+ * season's Red Moon altars, on a real-world map of Washington, D.C.
+ *
+ * The game's D.C. is rebuilt on the real street grid, so real coordinates
+ * work — but only a place the game names after a real one (Lincoln Memorial,
+ * the Capitol) can be pinned exactly. Everything else is `approx`: placed in
+ * its district by eye, a block or two out, and the page says so.
+ *
+ * Districts come from the Fandom wiki's mission pages (2026-10-16). Mission
+ * names stay English on purpose, as on the loot page (`MISSION_ZH`).
+ */
+
+export type PlaceKind = 'mission' | 'stronghold' | 'altar';
+export type Precision = 'exact' | 'approx';
+
+export interface MapPlace {
+  id: string;
+  kind: PlaceKind;
+  /** The game's name; for missions also the key the loot snapshot uses. */
+  en: string;
+  zh?: string;
+  district: string;
+  lat: number;
+  lng: number;
+  precision: Precision;
+  /** Where to look, in our words. */
+  where?: { zh: string; en: string };
+  /** The real building the game's version is modelled on, when it is fictional. */
+  basedOn?: string;
+}
+
+const mission = (id: string, en: string, district: string, lat: number, lng: number, precision: Precision, basedOn?: string): MapPlace =>
+  ({ id, kind: 'mission', en, district, lat, lng, precision, basedOn });
+const stronghold = (id: string, en: string, district: string, lat: number, lng: number, precision: Precision, basedOn?: string): MapPlace =>
+  ({ id, kind: 'stronghold', en, district, lat, lng, precision, basedOn });
+
+/** 主線任務 / D.C. main missions (Camp White Oak and DARPA left out: no location we could check). */
+export const MISSIONS: MapPlace[] = [
+  mission('grand-washington-hotel', 'Grand Washington Hotel', 'Downtown East', 38.8990, -77.0270, 'approx'),
+  mission('viewpoint-museum', 'ViewPoint Museum', 'Federal Triangle', 38.8931, -77.0193, 'approx', 'Newseum'),
+  mission('american-history-museum', 'American History Museum', 'East Mall', 38.8913, -77.0300, 'exact'),
+  mission('air-space-museum', 'Air & Space Museum', 'East Mall', 38.8882, -77.0199, 'exact'),
+  mission('jefferson-plaza', 'Jefferson Plaza', 'Southwest', 38.8847, -77.0250, 'approx'),
+  mission('bank-headquarters', 'Bank Headquarters', 'Downtown West', 38.9005, -77.0390, 'approx'),
+  mission('dcd-headquarters', 'DCD Headquarters', 'Constitution Hall', 38.8940, -77.0430, 'approx'),
+  mission('lincoln-memorial', 'Lincoln Memorial', 'West Potomac Park', 38.8893, -77.0502, 'exact'),
+  mission('potomac-event-center', 'Potomac Event Center', 'Foggy Bottom', 38.8957, -77.0558, 'approx', 'Kennedy Center'),
+  mission('jefferson-trade-center', 'Jefferson Trade Center', 'Federal Triangle', 38.8935, -77.0315, 'approx', 'Ronald Reagan Building and International Trade Center'),
+  mission('space-administration-hq', 'Space Administration HQ', 'Southwest', 38.8830, -77.0163, 'approx', 'NASA Headquarters'),
+  mission('federal-emergency-bunker', 'Federal Emergency Bunker', 'West End', 38.9040, -77.0510, 'approx'),
+];
+
+/** 據點 / Strongholds. */
+export const STRONGHOLDS: MapPlace[] = [
+  stronghold('district-union-arena', 'District Union Arena', 'Judiciary Square', 38.8981, -77.0209, 'approx', 'Capital One Arena'),
+  stronghold('roosevelt-island', 'Roosevelt Island', 'Roosevelt Island', 38.8966, -77.0644, 'exact'),
+  stronghold('capitol-building', 'Capitol Building', 'Capitol Hill', 38.8899, -77.0091, 'exact'),
+  stronghold('tidal-basin', 'Tidal Basin', 'West Potomac Park', 38.8814, -77.0365, 'exact'),
+  stronghold('manning-national-zoo', 'Manning National Zoo', 'D.C. Outskirts', 38.9296, -77.0498, 'approx', 'Smithsonian National Zoo'),
+  stronghold('the-pentagon', 'The Pentagon', 'The Pentagon', 38.8719, -77.0563, 'exact'),
+];
+
+/**
+ * 血月祭壇 / Red Moon Unleashed (2026-10-15 → 11-03): 20 altars to shoot, each
+ * worth one item from the event gear cache, back every day at 08:00 UTC.
+ *
+ * Numbering and districts follow Sportskeeda's guide (Sankalpa Das,
+ * 2026-10-15); each position was read off the in-game map in that guide's
+ * screenshots and matched to the real streets by eye, so all are `approx`.
+ */
+export const RED_MOON = {
+  start: '2026-10-15',
+  end: '2026-11-03',
+  guide: 'https://www.sportskeeda.com/mmo/all-red-moon-altar-locations-the-division-2-y8s3-red-moon-unleashed-event',
+  video: 'https://www.youtube.com/watch?v=Gkkw1SCSpf0',
+};
+
+const altar = (n: number, district: string, lat: number, lng: number, zh: string, en: string): MapPlace =>
+  ({ id: `altar-${n}`, kind: 'altar', en: `Red Moon Altar #${n}`, zh: `血月祭壇 #${n}`, district, lat, lng, precision: 'approx', where: { zh, en } });
+
+export const ALTARS: MapPlace[] = [
+  altar(1, 'West End', 38.9000, -77.0540, '高速公路旁的橫樑上。', 'On a beam beside the freeway.'),
+  altar(2, 'West End', 38.9013, -77.0488, '路邊建築的陽台上。', "On a street-side building's balcony."),
+  altar(3, 'Downtown West', 38.9030, -77.0420, '街上，汽車殘骸旁。', 'At street level next to wrecked cars.'),
+  altar(4, 'Downtown West', 38.8985, -77.0405, '路邊一個小平台上。', 'On a small raised ledge by the street.'),
+  altar(5, 'Foggy Bottom', 38.8962, -77.0500, '路口附近、廣告看板前，在地面上。', 'At street level in front of a billboard near the intersection.'),
+  altar(6, 'Foggy Bottom', 38.8945, -77.0470, '建築轉角施工鷹架的高處。', "High on the scaffolding at a building's corner."),
+  altar(7, 'Constitution Hall', 38.8960, -77.0415, '營火旁的施工鷹架上。', 'On construction scaffolding beside a bonfire.'),
+  altar(8, 'West Potomac Park', 38.8886, -77.0490, '林肯紀念堂附近的小屋旁。', 'By a small hut near the Lincoln Memorial.'),
+  altar(9, 'West Potomac Park', 38.8908, -77.0368, '建築屋頂上，背景看得到華盛頓紀念碑。', 'On a rooftop, with the Washington Monument behind it.'),
+  altar(10, 'White House', 38.8995, -77.0365, '悍馬車頂上。', 'On top of a Humvee.'),
+  altar(11, 'White House', 38.9010, -77.0372, '巷口的垃圾箱旁。', 'By a dumpster at an alley entrance.'),
+  altar(12, 'Downtown East', 38.8995, -77.0240, '拱門角落高處的平台上，有紫色燈光。', 'High on a ledge in the corner of an archway, lit purple.'),
+  altar(13, 'Downtown East', 38.9030, -77.0255, '路口附近的人行道上。', 'On the pavement near the intersection.'),
+  altar(14, 'Federal Triangle', 38.8945, -77.0235, '圍牆轉角的頂上。', 'On top of a corner of the boundary wall.'),
+  altar(15, 'Judiciary Square', 38.8975, -77.0175, 'District Mall 入口的門廊頂上。', 'On the porch roof of the District Mall entrance.'),
+  altar(16, 'Judiciary Square', 38.8962, -77.0182, '雕像前。', 'In front of the statue.'),
+  altar(17, 'East Mall', 38.8875, -77.0145, '轉角處，建築名牌正下方。', "At a corner, right under the building's name."),
+  altar(18, 'East Mall', 38.8870, -77.0105, '機密任務入口附近，鐵柵門後。', 'Behind the fenced gate near the Classified Assignment entrance.'),
+  altar(19, 'Southwest', 38.8850, -77.0178, '轉角附近的火車車廂頂上。', 'On top of a train carriage near the corner.'),
+  altar(20, 'Southwest', 38.8845, -77.0150, '轉角幾級台階上，周圍都是破椅子。', 'Up a few steps in a corner, among broken chairs.'),
+];
+
+/** 地圖中心 / Where the map opens: the National Mall, framing all of the above but the zoo. */
+export const MAP_CENTER: [number, number] = [-77.034, 38.893];
