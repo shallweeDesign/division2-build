@@ -729,6 +729,14 @@ $exotic: #ff4f3a;
   width: 12px; height: 12px; border-radius: 50%; cursor: grab;
   background: #e8e2d6; border: 2px solid #ff6a13; box-shadow: 0 0 0 1px #000;
 }
+.map-midpoint {
+  width: 12px; height: 12px; border-radius: 50%; cursor: copy;
+  display: grid; place-items: center; font: 700 10px/1 system-ui, sans-serif;
+  color: #ff6a13; background: rgba(#000, .55); border: 1px dashed rgba(#ff6a13, .8);
+  opacity: .55;
+  &:hover { opacity: 1; }
+  &.map-vertex { color: transparent; border-style: solid; opacity: 1; }
+}
 .map-edit-sel { margin: 0; display: grid; gap: .2rem; code { font-size: .78rem; color: $muted; } }
 .map-edit-list { margin: 0; padding-left: 1.1rem; font-size: .8rem; color: $muted; max-height: 8rem; overflow: auto; }
 .map-edit-actions { display: flex; flex-wrap: wrap; gap: .5rem; }

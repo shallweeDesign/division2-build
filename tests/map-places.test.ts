@@ -1,6 +1,6 @@
 /** 地圖地點 / The map's pins: complete, unique, and inside D.C. */
 import { describe, expect, it } from 'vitest';
-import { ALTARS, DISTRICTS, MISSIONS, RED_MOON, STRONGHOLDS, inRing } from '../src/data/map/places.ts';
+import { ALTARS, DISTRICTS, GAME_AREA, MISSIONS, RED_MOON, STRONGHOLDS, inRing, splitAtJunctions } from '../src/data/map/places.ts';
 
 const all = [...MISSIONS, ...STRONGHOLDS, ...ALTARS];
 
@@ -48,5 +48,19 @@ describe('map places', () => {
 
   it('closes every district ring', () => {
     for (const d of DISTRICTS) expect(d.ring[0], d.name).toEqual(d.ring[d.ring.length - 1]);
+  });
+
+  it('shares every corner that lies on another district edge', () => {
+    // A corner on an edge is a T-junction; after splitting there are none.
+    const rings = [...DISTRICTS.map((d) => d.ring), GAME_AREA];
+    expect(splitAtJunctions(rings)).toEqual(rings);
+    const wpp = DISTRICTS.find((d) => d.name === 'West Potomac Park')!;
+    expect(wpp.ring.length).toBeGreaterThan(5);
+  });
+
+  it('splits an edge at a corner lying on it, in order', () => {
+    const square: [number, number][] = [[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]];
+    const tick: [number, number][] = [[1, 0], [1, -1], [1.5, -1], [1, 0]];
+    expect(splitAtJunctions([square, tick])[0]).toEqual([[0, 0], [1, 0], [2, 0], [2, 2], [0, 2], [0, 0]]);
   });
 });

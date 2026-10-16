@@ -122,7 +122,7 @@ const PENN_8: [number, number] = [X8, 38.8942];
 const PENN_3: [number, number] = [-77.0140, 38.8925];
 const box = (w: number, s: number, e: number, n: number): [number, number][] => [[w, s], [e, s], [e, n], [w, n], [w, s]];
 
-export const DISTRICTS: District[] = [
+const DRAWN: District[] = [
   { name: 'West End', ring: box(W, F, X20, N) },
   { name: 'Foggy Bottom', ring: box(W, CON, X20, F) },
   { name: 'Constitution Hall', ring: box(X20, CON, X17, F) },
@@ -141,12 +141,46 @@ export const DISTRICTS: District[] = [
  * 遊戲範圍 / The outline of the districts above, clockwise, for the mask
  * that darkens everything outside the game's D.C.
  */
-export const GAME_AREA: [number, number][] = [
+const DRAWN_AREA: [number, number][] = [
   [W, N], [-77.0110, N], [-77.0110, 38.8960], [XE, 38.8960], [XE, 38.8840], [XC, 38.8840], [XC, S], [W, S], [W, N],
 ];
 
 /** How far the map may pan: the game area plus the zoo, the Pentagon and Roosevelt Island. */
 export const MAP_BOUNDS: [[number, number], [number, number]] = [[-77.085, 38.862], [-76.988, 38.938]];
+
+/**
+ * 共用頂點 / Where one ring's corner sits on another ring's edge (a T-junction,
+ * like West Potomac Park's long top edge under three districts' corners),
+ * give that edge the corner too. Then every border is made of the same
+ * points on both sides, and the editor can move or split it as one.
+ */
+export function splitAtJunctions(rings: [number, number][][]): [number, number][][] {
+  const eps = 1e-9;
+  const corners = rings.flatMap((r) => r.slice(0, -1));
+  const onSegment = (p: [number, number], a: [number, number], b: [number, number]) => {
+    const cross = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+    if (Math.abs(cross) > eps) return false;
+    const t = ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2);
+    return t > eps && t < 1 - eps;
+  };
+  return rings.map((ring) => {
+    const out: [number, number][] = [];
+    for (let i = 0; i < ring.length - 1; i++) {
+      const a = ring[i]!, b = ring[i + 1]!;
+      out.push(a);
+      const between = corners
+        .filter((p, k, all) => onSegment(p, a, b) && all.findIndex((q) => q[0] === p[0] && q[1] === p[1]) === k)
+        .sort((p, q) => Math.hypot(p[0] - a[0], p[1] - a[1]) - Math.hypot(q[0] - a[0], q[1] - a[1]));
+      out.push(...between);
+    }
+    out.push(ring[ring.length - 1]!);
+    return out;
+  });
+}
+
+const SPLIT = splitAtJunctions([...DRAWN.map((d) => d.ring), DRAWN_AREA]);
+export const DISTRICTS: District[] = DRAWN.map((d, i) => ({ name: d.name, ring: SPLIT[i]! }));
+export const GAME_AREA: [number, number][] = SPLIT[SPLIT.length - 1]!;
 
 /** Point-in-polygon (ray casting), for the tests and nothing else yet. */
 export function inRing([lng, lat]: [number, number], ring: [number, number][]) {

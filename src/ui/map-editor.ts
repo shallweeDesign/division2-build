@@ -64,7 +64,10 @@ function overridesNow(): MapOverrides {
 
 const unsaved = () => [
   ...[...pins].filter(([id, at]) => !same(at, savedPins.get(id)!)).map(([id]) => id),
-  ...[...rings].filter(([k, r]) => r.some((p, i) => !same(p, savedRings.get(k)![i]!))).map(([k]) => k),
+  ...[...rings].filter(([k, r]) => {
+    const was = savedRings.get(k)!;
+    return r.length !== was.length || r.some((p, i) => !same(p, was[i]!));
+  }).map(([k]) => k),
 ];
 
 function redrawAreas() {
@@ -94,21 +97,46 @@ function placePins() {
   }
 }
 
-/** One handle per distinct corner, moving that corner in every ring that has it. */
+type Ref = { key: string; i: number };
+
+/** Remove refs' points from their rings, keeping each ring closed and ≥ 3 corners. */
+function removeCorner(refs: Ref[]) {
+  const byRing = new Map<string, number[]>();
+  for (const { key, i } of refs) byRing.set(key, [...(byRing.get(key) ?? []), i]);
+  for (const [key, idx] of byRing) if (rings.get(key)!.length - 1 - idx.length < 3) return false;
+  for (const [key, idx] of byRing) {
+    const ring = rings.get(key)!;
+    const open = ring.slice(0, -1).filter((_, i) => !idx.includes(i));
+    rings.set(key, [...open, [...open[0]!] as LngLat]);
+  }
+  return true;
+}
+
+/**
+ * 頂點與中點 / One handle per distinct corner, moving it in every ring that has
+ * it; double-click removes it. Between corners, a faint "+" at each edge's
+ * midpoint: drag it and a new corner is inserted there, in every ring that
+ * shares that edge, so a shared border gains the corner on both sides.
+ */
 function placeVertices() {
   if (!map) return;
   for (const m of vertexMarkers) m.remove();
   vertexMarkers.length = 0;
-  const groups: { at: LngLat; refs: { key: string; i: number }[] }[] = [];
+
+  const groups: { at: LngLat; refs: Ref[] }[] = [];
+  const edges: { a: LngLat; b: LngLat; refs: Ref[] }[] = [];
   for (const [key, ring] of rings) {
-    ring.forEach((p, i) => {
-      if (i === ring.length - 1) return; // the closing copy of the first point
+    for (let i = 0; i < ring.length - 1; i++) {
+      const p = ring[i]!, q = ring[i + 1]!;
       const g = groups.find((x) => same(x.at, p));
       if (g) g.refs.push({ key, i }); else groups.push({ at: [...p] as LngLat, refs: [{ key, i }] });
-    });
+      const e = edges.find((x) => (same(x.a, p) && same(x.b, q)) || (same(x.a, q) && same(x.b, p)));
+      if (e) e.refs.push({ key, i }); else edges.push({ a: p, b: q, refs: [{ key, i }] });
+    }
   }
+
   for (const g of groups) {
-    const node = el('div', { class: 'map-vertex', title: g.refs.map((r) => nameOf(r.key)).join(' · ') });
+    const node = el('div', { class: 'map-vertex', title: `${g.refs.map((r) => nameOf(r.key)).join(' · ')}\n${t('mapEditDblDelete')}` });
     const m = new maplibregl.Marker({ element: node, draggable: true }).setLngLat(g.at).addTo(map);
     m.on('drag', () => {
       const ll = m.getLngLat();
@@ -122,7 +150,45 @@ function placeVertices() {
       redrawAreas();
       renderPanel();
     });
-    m.on('dragend', () => { status = { kind: 'idle' }; renderPanel(); });
+    m.on('dragend', () => { status = { kind: 'idle' }; placeVertices(); renderPanel(); });
+    node.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      if (removeCorner(g.refs)) { status = { kind: 'idle' }; redrawAreas(); placeVertices(); }
+      else status = { kind: 'error', text: t('mapEditMinCorners') };
+      renderPanel();
+    });
+    vertexMarkers.push(m);
+  }
+
+  for (const e of edges) {
+    const mid: LngLat = [(e.a[0] + e.b[0]) / 2, (e.a[1] + e.b[1]) / 2];
+    const node = el('div', { class: 'map-midpoint', title: t('mapEditAddCorner') }, ['+']);
+    const m = new maplibregl.Marker({ element: node, draggable: true }).setLngLat(mid).addTo(map);
+    // The same array goes into every ring sharing the edge, so one drag moves them all.
+    const point: LngLat = [...mid] as LngLat;
+    m.on('dragstart', () => {
+      const byRing = new Map<string, number[]>();
+      for (const { key, i } of e.refs) byRing.set(key, [...(byRing.get(key) ?? []), i]);
+      for (const [key, idx] of byRing) {
+        const ring = rings.get(key)!;
+        for (const i of idx.sort((x, y) => y - x)) ring.splice(i + 1, 0, point);
+      }
+      node.classList.add('map-vertex');
+      selected = e.refs[0]!.key;
+    });
+    m.on('drag', () => {
+      const ll = m.getLngLat();
+      point[0] = ll.lng; point[1] = ll.lat;
+      redrawAreas();
+      renderPanel();
+    });
+    m.on('dragend', () => {
+      // Unshare the array again: later drags assign fresh points per ring.
+      for (const ring of rings.values()) ring.forEach((p, i) => { if (p === point) ring[i] = [...point] as LngLat; });
+      status = { kind: 'idle' };
+      placeVertices();
+      renderPanel();
+    });
     vertexMarkers.push(m);
   }
 }
@@ -235,6 +301,7 @@ export function renderMapEditor(root: HTMLElement) {
     const canvas = el('div', { class: 'map-canvas' });
     root.replaceChildren(canvas, panel);
     map = createMap(canvas);
+    map.doubleClickZoom.disable(); // double-click deletes a corner here
     map.on('load', () => {
       addAreaLayers(map!, DISTRICTS, GAME_AREA);
       placePins();
