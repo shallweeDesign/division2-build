@@ -715,6 +715,7 @@ $exotic: #ff4f3a;
 .kind-altar .map-swatch, .map-pin.kind-altar { background: #d23a3a; }
 
 .map-pin {
+  display: grid; place-items: center;
   width: 18px; height: 18px; padding: 0; border-radius: 50%; cursor: pointer;
   border: 2px solid rgba(#000, .65); box-shadow: 0 0 0 1px rgba(#fff, .35);
   color: #fff; font: 700 10px/1 system-ui, sans-serif;
@@ -722,6 +723,21 @@ $exotic: #ff4f3a;
   &.kind-altar { width: 22px; height: 22px; }
   &.has-loot { box-shadow: 0 0 0 3px rgba($accent, .9); }
   &.done { background: #4fc08d; opacity: .7; }
+}
+.map-pin.selected { outline: 2px solid #fff; outline-offset: 2px; }
+.map-vertex {
+  width: 12px; height: 12px; border-radius: 50%; cursor: grab;
+  background: #e8e2d6; border: 2px solid #ff6a13; box-shadow: 0 0 0 1px #000;
+}
+.map-edit-sel { margin: 0; display: grid; gap: .2rem; code { font-size: .78rem; color: $muted; } }
+.map-edit-list { margin: 0; padding-left: 1.1rem; font-size: .8rem; color: $muted; max-height: 8rem; overflow: auto; }
+.map-edit-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.map-note.ok { color: #4fc08d; }
+.map-note.error { color: $warn; }
+.map-edit-uid { font-size: .74rem; word-break: break-all; color: $text; }
+.map-edit-rules {
+  margin: 0; padding: .5rem; font-size: .7rem; line-height: 1.5; overflow-x: auto;
+  background: $panel-2; border: 1px solid $line; border-radius: 3px; white-space: pre;
 }
 .map-progress {
   display: flex; align-items: center; gap: .6rem; margin: 0;

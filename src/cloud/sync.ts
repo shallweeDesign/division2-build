@@ -21,7 +21,7 @@ export type CloudStatus = 'off' | 'signed-out' | 'loading' | 'signed-in' | 'erro
 
 export interface CloudState {
   status: CloudStatus;
-  user: { name: string; email: string; photo: string | null } | null;
+  user: { uid: string; name: string; email: string; photo: string | null } | null;
   /** Last error, for the header's tooltip. */
   error: string | null;
 }
@@ -86,7 +86,7 @@ async function onUser(s: Sdk, u: import('firebase/auth').User | null) {
     set({ status: 'signed-out', user: null });
     return;
   }
-  set({ status: 'loading', user: { name: u.displayName ?? u.email ?? '', email: u.email ?? '', photo: u.photoURL }, error: null });
+  set({ status: 'loading', user: { uid: u.uid, name: u.displayName ?? u.email ?? '', email: u.email ?? '', photo: u.photoURL }, error: null });
 
   const { doc, getDoc, setDoc, onSnapshot, serverTimestamp } = s.store;
   const ref = doc(s.db, 'users', u.uid);
@@ -164,4 +164,16 @@ export async function signOut() {
   flag.del(FLAG);
   flag.del(LINKED);
   clearUserData();
+}
+
+/**
+ * 地圖位置修正 / Write the map's position corrections (`map/overrides`).
+ * Only the owner's account may, per `firestore.rules`; anyone else gets
+ * Firestore's permission-denied error back, which the editor shows.
+ */
+export async function saveMapOverrides(data: Record<string, unknown>) {
+  const s = await sdk;
+  if (!s || !s.authInst.currentUser) throw new Error('not-signed-in');
+  const { doc, setDoc, serverTimestamp } = s.store;
+  await setDoc(doc(s.db, 'map', 'overrides'), { ...data, updatedAt: serverTimestamp() });
 }

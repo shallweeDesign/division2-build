@@ -20,6 +20,7 @@ export default defineConfig(({ command }) => ({
         loot: fileURLToPath(new URL('loot/index.html', import.meta.url)),
         collectibles: fileURLToPath(new URL('collectibles/index.html', import.meta.url)),
         map: fileURLToPath(new URL('map/index.html', import.meta.url)),
+        mapEdit: fileURLToPath(new URL('map-edit/index.html', import.meta.url)),
       },
     },
   },

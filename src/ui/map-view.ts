@@ -2,54 +2,25 @@
  * 地圖頁 / The D.C. map: missions, strongholds and the Red Moon altars on a
  * real-world base map, with today's targeted loot on the missions it drops in.
  *
- * Base map: OpenStreetMap's standard raster tiles, inverted, desaturated and
- * dimmed in the raster layer's paint into a dark tactical look. They are
- * ~40 KB a tile; OpenFreeMap's vector tiles over central D.C. were 270-510 KB
- * each and took 10 s and more to fill the first view. The pins are plain DOM
- * markers — there are only a few dozen. Outside the game's D.C. is masked.
+ * The base map and the district layers live in `map-base.ts`. The pins are
+ * plain DOM markers — there are only a few dozen. Positions are the built-in
+ * ones with the owner's corrections from the position editor laid on top
+ * (`data/map/overrides.ts`), fetched without the Firebase SDK.
  *
  * Altar ticks are per day (they respawn at the 08:00 UTC reset) and per
  * browser, kept in localStorage under that day's date, so yesterday's ticks
  * simply stop applying. Which layers are shown is remembered the same way.
  */
-import * as maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-// MapLibre 6 runs its tile work in a module worker that imports a shared
-// chunk; Vite has to bundle that worker itself, or the URL it ends up with
-// points at a file that is not there and the base map stays black.
-import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { lang, t } from '../i18n/index.ts';
 import { lootZh, missionZh } from '../i18n/loot.ts';
 import { looseKey } from '../model/loot-vocab.ts';
 import { loadLoot, localClock, nextReset, rotationDate } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
-import { ALTARS, DISTRICTS, GAME_AREA, MAP_BOUNDS, MAP_CENTER, MISSIONS, RED_MOON, STRONGHOLDS } from '../data/map/places.ts';
+import { ALTARS, DISTRICTS, RED_MOON } from '../data/map/places.ts';
 import type { MapPlace, PlaceKind } from '../data/map/places.ts';
+import { applyOverrides, emptyOverrides, loadMapOverrides } from '../data/map/overrides.ts';
+import { DISTRICT_LAYERS, addAreaLayers, createMap, maplibregl, setAreaData } from './map-base.ts';
 import { el } from './dom.ts';
-
-const STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  // Only the district names need glyphs; OpenFreeMap serves them without a key.
-  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      maxzoom: 19,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
-    },
-  },
-  layers: [
-    { id: 'background', type: 'background', paint: { 'background-color': '#0b0d10' } },
-    {
-      id: 'osm', type: 'raster', source: 'osm',
-      // brightness-min above max inverts; 0.5 → 0 keeps it near black.
-      paint: { 'raster-saturation': -1, 'raster-brightness-min': 0.5, 'raster-brightness-max': 0, 'raster-contrast': 0.15 },
-    },
-  ],
-};
-maplibregl.setWorkerUrl(workerUrl);
 
 const fill = (s: string, vars: Record<string, string>) =>
   s.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '');
@@ -76,6 +47,8 @@ const altarNo = (p: MapPlace) => Number(p.id.slice('altar-'.length));
 const eventOn = (day = rotationDate()) => day >= RED_MOON.start && day <= RED_MOON.end;
 
 let map: maplibregl.Map | null = null;
+/** Built-in positions until the owner's corrections arrive. */
+let current = applyOverrides(emptyOverrides());
 const markers = new Map<string, { place: MapPlace; marker: maplibregl.Marker; node: HTMLElement }>();
 let loot: LootSnapshot | null = null;
 
@@ -121,52 +94,9 @@ function pinNode(p: MapPlace) {
   return node;
 }
 
-/** 分區線 / The district outlines, a faint fill, and each name at its centre. */
-const DISTRICT_LAYERS = ['district-fill', 'district-line', 'district-label'];
-
 function addDistricts() {
-  if (!map || map.getSource('districts')) return;
-  const centre = (ring: [number, number][]) => {
-    const pts = ring.slice(0, -1);
-    return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
-  };
-  map.addSource('districts', {
-    type: 'geojson',
-    data: {
-      type: 'FeatureCollection',
-      features: DISTRICTS.map((d) => ({ type: 'Feature', properties: { name: d.name }, geometry: { type: 'Polygon', coordinates: [d.ring] } })),
-    },
-  });
-  map.addSource('district-names', {
-    type: 'geojson',
-    data: {
-      type: 'FeatureCollection',
-      features: DISTRICTS.map((d) => ({ type: 'Feature', properties: { name: d.name }, geometry: { type: 'Point', coordinates: centre(d.ring) } })),
-    },
-  });
-  // Everything outside the game's D.C., darkened; the world with the game area cut out.
-  map.addSource('outside', {
-    type: 'geojson',
-    data: {
-      type: 'Feature', properties: {},
-      geometry: { type: 'Polygon', coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]], GAME_AREA] },
-    },
-  });
-  map.addLayer({ id: 'outside-mask', type: 'fill', source: 'outside', paint: { 'fill-color': '#050607', 'fill-opacity': 0.82 } });
-  map.addLayer({ id: 'outside-edge', type: 'line', source: 'outside', paint: { 'line-color': '#ff6a13', 'line-opacity': 0.5, 'line-width': 1.5 } });
-  map.addLayer({ id: 'district-fill', type: 'fill', source: 'districts', paint: { 'fill-color': '#ff6a13', 'fill-opacity': 0.02 } });
-  map.addLayer({
-    id: 'district-line', type: 'line', source: 'districts',
-    paint: { 'line-color': '#e8e2d6', 'line-opacity': 0.55, 'line-width': 1.2, 'line-dasharray': [3, 2] },
-  });
-  map.addLayer({
-    id: 'district-label', type: 'symbol', source: 'district-names',
-    layout: {
-      'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 12,
-      'text-transform': 'uppercase', 'text-letter-spacing': 0.12, 'text-allow-overlap': false,
-    },
-    paint: { 'text-color': '#ffb27a', 'text-opacity': 0.75, 'text-halo-color': '#000', 'text-halo-width': 1.2 },
-  });
+  if (!map) return;
+  addAreaLayers(map, current.districts, current.area);
   showDistricts();
 }
 
@@ -179,7 +109,7 @@ function placeMarkers() {
   if (!map) return;
   for (const { marker } of markers.values()) marker.remove();
   markers.clear();
-  for (const p of [...STRONGHOLDS, ...MISSIONS, ...ALTARS]) {
+  for (const p of [...current.strongholds, ...current.missions, ...current.altars]) {
     if (!layers[p.kind] || (p.kind === 'altar' && !eventOn())) continue;
     const node = pinNode(p);
     const popup = new maplibregl.Popup({ offset: 14, maxWidth: '260px' });
@@ -224,14 +154,14 @@ function renderPanel(panel: HTMLElement) {
   ]);
 
   const missionsToday = loot?.missions ?? [];
-  const onMap = (name: string) => MISSIONS.find((p) => looseKey(p.en) === looseKey(name));
+  const onMap = (name: string) => current.missions.find((p) => looseKey(p.en) === looseKey(name));
 
   panel.replaceChildren(
     el('section', { class: 'map-card' }, [
       el('h2', { class: 'col-heading' }, [t('mapLayers')]),
       toggle('district', DISTRICTS.length),
-      toggle('mission', MISSIONS.length),
-      toggle('stronghold', STRONGHOLDS.length),
+      toggle('mission', current.missions.length),
+      toggle('stronghold', current.strongholds.length),
       toggle('altar', ALTARS.length, !eventOn(day)),
     ]),
     el('section', { class: 'map-card map-altars' }, [
@@ -277,6 +207,7 @@ function renderPanel(panel: HTMLElement) {
         : el('p', { class: 'map-note' }, [t(loot ? 'mapLootNone' : 'detailLoading')]),
     ]),
     el('p', { class: 'map-note' }, [t('mapApproxAll')]),
+    el('p', { class: 'map-note' }, [el('a', { href: `${import.meta.env.BASE_URL}map-edit/` }, [t('mapEditLink')])]),
   );
 }
 
@@ -286,10 +217,12 @@ export function renderMapPage(root: HTMLElement) {
     panel = el('aside', { class: 'map-panel' });
     const canvas = el('div', { class: 'map-canvas' });
     root.replaceChildren(canvas, panel);
-    map = new maplibregl.Map({
-      container: canvas, style: STYLE, center: MAP_CENTER, zoom: 13.4, minZoom: 12, maxZoom: 18, maxBounds: MAP_BOUNDS,
+    map = createMap(canvas);
+    void loadMapOverrides().then((ov) => {
+      current = applyOverrides(ov);
+      if (map?.getSource('districts')) setAreaData(map, current.districts, current.area);
+      placeMarkers();
     });
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     map.on('load', () => { addDistricts(); placeMarkers(); });
     void loadLoot().then((snap) => { loot = snap; placeMarkers(); renderPanel(panel!); });
   }
