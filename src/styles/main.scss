@@ -709,6 +709,7 @@ $exotic: #ff4f3a;
   input { margin: 0; }
 }
 .map-swatch { width: .8rem; height: .8rem; border-radius: 50%; flex: none; }
+.kind-district .map-swatch { background: none; border: 1.5px dashed #e8e2d6; border-radius: 2px; }
 .kind-mission .map-swatch, .map-pin.kind-mission { background: #5aa9e6; }
 .kind-stronghold .map-swatch, .map-pin.kind-stronghold { background: #e8c46a; }
 .kind-altar .map-swatch, .map-pin.kind-altar { background: #d23a3a; }

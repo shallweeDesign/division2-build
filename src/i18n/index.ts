@@ -129,6 +129,7 @@ const UI = {
     en: "The base map is real-world D.C.; in-game spots were placed on it by eye from the game's map.",
   },
   mapLayers: { 'zh-tw': '圖層', en: 'Layers' },
+  mapLayer_district: { 'zh-tw': '分區線', en: 'Districts' },
   mapLayer_mission: { 'zh-tw': '主線任務', en: 'Main missions' },
   mapLayer_stronghold: { 'zh-tw': '據點', en: 'Strongholds' },
   mapLayer_altar: { 'zh-tw': '血月祭壇', en: 'Red Moon altars' },
@@ -139,8 +140,8 @@ const UI = {
   mapBasedOn: { 'zh-tw': '原型：{b}', en: 'Modelled on {b}' },
   mapApprox: { 'zh-tw': '約略位置，可能差一兩個街區。', en: 'Approximate — may be a block or two out.' },
   mapApproxAll: {
-    'zh-tw': '標示「約略位置」的點是依遊戲地圖目測對照，只有和真實地標同名的地點（林肯紀念堂、國會大廈等）是精確的。發現位置不對歡迎回報。',
-    en: 'Spots marked approximate were placed by eye from the game map; only places named after real landmarks (Lincoln Memorial, the Capitol…) are exact.',
+    'zh-tw': '分區線和標示「約略位置」的點都是依遊戲地圖目測對照，只有和真實地標同名的地點（林肯紀念堂、國會大廈等）是精確的。發現位置不對歡迎回報。',
+    en: 'District lines and spots marked approximate were placed by eye from the game map; only places named after real landmarks (Lincoln Memorial, the Capitol…) are exact.',
   },
   mapAltarsTitle: { 'zh-tw': '血月祭壇（今日）', en: 'Red Moon altars (today)' },
   mapAltarProgress: { 'zh-tw': '已射 {n} / {total}', en: '{n} / {total} shot' },

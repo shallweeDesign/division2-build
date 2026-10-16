@@ -42,7 +42,7 @@ export const MISSIONS: MapPlace[] = [
   mission('american-history-museum', 'American History Museum', 'East Mall', 38.8913, -77.0300, 'exact'),
   mission('air-space-museum', 'Air & Space Museum', 'East Mall', 38.8882, -77.0199, 'exact'),
   mission('jefferson-plaza', 'Jefferson Plaza', 'Southwest', 38.8847, -77.0250, 'approx'),
-  mission('bank-headquarters', 'Bank Headquarters', 'Downtown West', 38.9005, -77.0390, 'approx'),
+  mission('bank-headquarters', 'Bank Headquarters', 'Downtown West', 38.9040, -77.0400, 'approx'),
   mission('dcd-headquarters', 'DCD Headquarters', 'Constitution Hall', 38.8940, -77.0430, 'approx'),
   mission('lincoln-memorial', 'Lincoln Memorial', 'West Potomac Park', 38.8893, -77.0502, 'exact'),
   mission('potomac-event-center', 'Potomac Event Center', 'Foggy Bottom', 38.8957, -77.0558, 'approx', 'Kennedy Center'),
@@ -93,7 +93,7 @@ export const ALTARS: MapPlace[] = [
   altar(11, 'White House', 38.9010, -77.0372, '巷口的垃圾箱旁。', 'By a dumpster at an alley entrance.'),
   altar(12, 'Downtown East', 38.8995, -77.0240, '拱門角落高處的平台上，有紫色燈光。', 'High on a ledge in the corner of an archway, lit purple.'),
   altar(13, 'Downtown East', 38.9030, -77.0255, '路口附近的人行道上。', 'On the pavement near the intersection.'),
-  altar(14, 'Federal Triangle', 38.8945, -77.0235, '圍牆轉角的頂上。', 'On top of a corner of the boundary wall.'),
+  altar(14, 'Federal Triangle', 38.8935, -77.0235, '圍牆轉角的頂上。', 'On top of a corner of the boundary wall.'),
   altar(15, 'Judiciary Square', 38.8975, -77.0175, 'District Mall 入口的門廊頂上。', 'On the porch roof of the District Mall entrance.'),
   altar(16, 'Judiciary Square', 38.8962, -77.0182, '雕像前。', 'In front of the statue.'),
   altar(17, 'East Mall', 38.8875, -77.0145, '轉角處，建築名牌正下方。', "At a corner, right under the building's name."),
@@ -101,6 +101,51 @@ export const ALTARS: MapPlace[] = [
   altar(19, 'Southwest', 38.8850, -77.0178, '轉角附近的火車車廂頂上。', 'On top of a train carriage near the corner.'),
   altar(20, 'Southwest', 38.8845, -77.0150, '轉角幾級台階上，周圍都是破椅子。', 'Up a few steps in a corner, among broken chairs.'),
 ];
+
+/**
+ * 分區 / The game's districts in central D.C., drawn along real streets from
+ * the district lines in the in-game map screenshots. Approximate like the
+ * pins, but every pin above falls inside its own district (tested), so the
+ * two hold each other in check. Rings are [lng, lat], closed.
+ *
+ * Streets used: Rock Creek ≈ -77.0565, 20th ≈ -77.0445, 17th ≈ -77.0396,
+ * 15th ≈ -77.0336, 8th ≈ -77.0230, the Capitol ≈ -77.0100; Independence
+ * ≈ 38.886, Constitution ≈ 38.892, F ≈ 38.8973, I ≈ 38.902; Pennsylvania
+ * Avenue is the diagonal between Downtown East and Federal Triangle.
+ */
+export interface District { name: string; ring: [number, number][] }
+
+const W = -77.0565, X20 = -77.0445, X17 = -77.0396, X15 = -77.0336, X8 = -77.0230, XC = -77.0100, XE = -77.0000;
+const S = 38.8790, IND = 38.8860, CON = 38.8920, F = 38.8973, I = 38.9020, N = 38.9085;
+const PENN_15: [number, number] = [X15, 38.8957];
+const PENN_8: [number, number] = [X8, 38.8942];
+const PENN_3: [number, number] = [-77.0140, 38.8925];
+const box = (w: number, s: number, e: number, n: number): [number, number][] => [[w, s], [e, s], [e, n], [w, n], [w, s]];
+
+export const DISTRICTS: District[] = [
+  { name: 'West End', ring: box(W, F, X20, N) },
+  { name: 'Foggy Bottom', ring: box(W, CON, X20, F) },
+  { name: 'Constitution Hall', ring: box(X20, CON, X17, F) },
+  { name: 'Downtown West', ring: [[X20, F], [X17, F], [X17, I], [X15, I], [X15, N], [X20, N], [X20, F]] },
+  { name: 'White House', ring: box(X17, CON, X15, I) },
+  { name: 'Downtown East', ring: [PENN_15, PENN_8, [X8, N], [X15, N], PENN_15] },
+  { name: 'Federal Triangle', ring: [[X15, CON], [PENN_3[0], CON], PENN_3, PENN_8, PENN_15, [X15, CON]] },
+  { name: 'Judiciary Square', ring: [PENN_8, PENN_3, [-77.0110, PENN_3[1]], [-77.0110, N], [X8, N], PENN_8] },
+  { name: 'West Potomac Park', ring: box(W, S, X15, CON) },
+  { name: 'East Mall', ring: box(X15, IND, XC, CON) },
+  { name: 'Southwest', ring: box(X15, S, XC, IND) },
+  { name: 'Capitol Hill', ring: box(XC, 38.8840, XE, 38.8960) },
+];
+
+/** Point-in-polygon (ray casting), for the tests and nothing else yet. */
+export function inRing([lng, lat]: [number, number], ring: [number, number][]) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]!, [xj, yj] = ring[j]!;
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
 
 /** 地圖中心 / Where the map opens: the National Mall, framing all of the above but the zoo. */
 export const MAP_CENTER: [number, number] = [-77.034, 38.893];

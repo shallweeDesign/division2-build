@@ -20,7 +20,7 @@ import { lootZh, missionZh } from '../i18n/loot.ts';
 import { looseKey } from '../model/loot-vocab.ts';
 import { loadLoot, localClock, nextReset, rotationDate } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
-import { ALTARS, MAP_CENTER, MISSIONS, RED_MOON, STRONGHOLDS } from '../data/map/places.ts';
+import { ALTARS, DISTRICTS, MAP_CENTER, MISSIONS, RED_MOON, STRONGHOLDS } from '../data/map/places.ts';
 import type { MapPlace, PlaceKind } from '../data/map/places.ts';
 import { el } from './dom.ts';
 
@@ -43,8 +43,9 @@ const store = {
 const LAYERS_KEY = 'd2b.map.layers';
 const altarKey = () => `d2b.map.altars.${rotationDate()}`;
 
-type Layers = Record<PlaceKind, boolean>;
-const layers: Layers = { mission: true, stronghold: true, altar: true, ...store.get<Partial<Layers>>(LAYERS_KEY, {}) };
+type Layer = PlaceKind | 'district';
+type Layers = Record<Layer, boolean>;
+const layers: Layers = { district: true, mission: true, stronghold: true, altar: true, ...store.get<Partial<Layers>>(LAYERS_KEY, {}) };
 let found = new Set<number>(store.get<number[]>(altarKey(), []));
 
 const altarNo = (p: MapPlace) => Number(p.id.slice('altar-'.length));
@@ -96,6 +97,50 @@ function pinNode(p: MapPlace) {
   return node;
 }
 
+/** 分區線 / The district outlines, a faint fill, and each name at its centre. */
+const DISTRICT_LAYERS = ['district-fill', 'district-line', 'district-label'];
+
+function addDistricts() {
+  if (!map || map.getSource('districts')) return;
+  const centre = (ring: [number, number][]) => {
+    const pts = ring.slice(0, -1);
+    return [pts.reduce((a, p) => a + p[0], 0) / pts.length, pts.reduce((a, p) => a + p[1], 0) / pts.length];
+  };
+  map.addSource('districts', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: DISTRICTS.map((d) => ({ type: 'Feature', properties: { name: d.name }, geometry: { type: 'Polygon', coordinates: [d.ring] } })),
+    },
+  });
+  map.addSource('district-names', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: DISTRICTS.map((d) => ({ type: 'Feature', properties: { name: d.name }, geometry: { type: 'Point', coordinates: centre(d.ring) } })),
+    },
+  });
+  map.addLayer({ id: 'district-fill', type: 'fill', source: 'districts', paint: { 'fill-color': '#ff6a13', 'fill-opacity': 0.04 } });
+  map.addLayer({
+    id: 'district-line', type: 'line', source: 'districts',
+    paint: { 'line-color': '#e8e2d6', 'line-opacity': 0.55, 'line-width': 1.2, 'line-dasharray': [3, 2] },
+  });
+  map.addLayer({
+    id: 'district-label', type: 'symbol', source: 'district-names',
+    layout: {
+      'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 12,
+      'text-transform': 'uppercase', 'text-letter-spacing': 0.12, 'text-allow-overlap': false,
+    },
+    paint: { 'text-color': '#ffb27a', 'text-opacity': 0.75, 'text-halo-color': '#000', 'text-halo-width': 1.2 },
+  });
+  showDistricts();
+}
+
+function showDistricts() {
+  if (!map?.getSource('districts')) return;
+  for (const id of DISTRICT_LAYERS) map.setLayoutProperty(id, 'visibility', layers.district ? 'visible' : 'none');
+}
+
 function placeMarkers() {
   if (!map) return;
   for (const { marker } of markers.values()) marker.remove();
@@ -131,13 +176,13 @@ function renderPanel(panel: HTMLElement) {
   // A new reset since the ticks were loaded: start the day clean.
   found = new Set(store.get<number[]>(altarKey(), []));
 
-  const toggle = (kind: PlaceKind, count: number, disabled = false) => el('label', { class: `map-toggle kind-${kind}` }, [
+  const toggle = (kind: Layer, count: number, disabled = false) => el('label', { class: `map-toggle kind-${kind}` }, [
     el('input', {
       type: 'checkbox', checked: layers[kind] && !disabled, disabled,
       onchange: (e: Event) => {
         layers[kind] = (e.target as HTMLInputElement).checked;
         store.set(LAYERS_KEY, layers);
-        placeMarkers();
+        if (kind === 'district') showDistricts(); else placeMarkers();
       },
     }),
     el('span', { class: 'map-swatch' }),
@@ -150,6 +195,7 @@ function renderPanel(panel: HTMLElement) {
   panel.replaceChildren(
     el('section', { class: 'map-card' }, [
       el('h2', { class: 'col-heading' }, [t('mapLayers')]),
+      toggle('district', DISTRICTS.length),
       toggle('mission', MISSIONS.length),
       toggle('stronghold', STRONGHOLDS.length),
       toggle('altar', ALTARS.length, !eventOn(day)),
@@ -208,7 +254,7 @@ export function renderMapPage(root: HTMLElement) {
     root.replaceChildren(canvas, panel);
     map = new maplibregl.Map({ container: canvas, style: STYLE, center: MAP_CENTER, zoom: 13.4, minZoom: 11, maxZoom: 18 });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-    map.on('load', placeMarkers);
+    map.on('load', () => { addDistricts(); placeMarkers(); });
     void loadLoot().then((snap) => { loot = snap; placeMarkers(); renderPanel(panel!); });
   }
   const p = panel;

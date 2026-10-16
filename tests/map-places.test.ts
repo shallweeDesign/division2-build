@@ -1,6 +1,6 @@
 /** 地圖地點 / The map's pins: complete, unique, and inside D.C. */
 import { describe, expect, it } from 'vitest';
-import { ALTARS, MISSIONS, RED_MOON, STRONGHOLDS } from '../src/data/map/places.ts';
+import { ALTARS, DISTRICTS, MISSIONS, RED_MOON, STRONGHOLDS, inRing } from '../src/data/map/places.ts';
 
 const all = [...MISSIONS, ...STRONGHOLDS, ...ALTARS];
 
@@ -33,5 +33,20 @@ describe('map places', () => {
     for (const name of ['ViewPoint Museum', 'Jefferson Trade Center', 'Bank Headquarters', 'DCD Headquarters']) {
       expect(MISSIONS.some((p) => p.en === name), name).toBe(true);
     }
+  });
+
+  it('puts every pin inside its own district, where that district is drawn', () => {
+    for (const p of all) {
+      const d = DISTRICTS.find((x) => x.name === p.district);
+      if (!d) continue; // Roosevelt Island, the outskirts, the Pentagon: not drawn
+      expect(inRing([p.lng, p.lat], d.ring), `${p.id} in ${p.district}`).toBe(true);
+      for (const other of DISTRICTS.filter((x) => x !== d)) {
+        expect(inRing([p.lng, p.lat], other.ring), `${p.id} also in ${other.name}`).toBe(false);
+      }
+    }
+  });
+
+  it('closes every district ring', () => {
+    for (const d of DISTRICTS) expect(d.ring[0], d.name).toEqual(d.ring[d.ring.length - 1]);
   });
 });
