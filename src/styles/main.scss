@@ -732,7 +732,7 @@ $exotic: #ff4f3a;
 // outline orange and a selected pin's outline white.
 $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 .map-pin.kind-mission {
-  position: relative; width: 20px; height: 22px;
+  width: 20px; height: 22px; // no `position`: MapLibre places markers with position:absolute
   border: 0; border-radius: 0; box-shadow: none; outline: none;
   background: rgba(#000, .75); clip-path: $hex;
   &::before { content: ''; position: absolute; inset: 2.5px; background: #5aa9e6; clip-path: $hex; }
