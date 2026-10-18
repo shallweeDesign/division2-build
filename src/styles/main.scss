@@ -725,6 +725,22 @@ $exotic: #ff4f3a;
   &.done { background: #4fc08d; opacity: .7; }
 }
 .map-pin.selected { outline: 2px solid #fff; outline-offset: 2px; }
+
+// 主線任務 / Missions are hexagons, like the game's main-mission icon. A clip
+// path drops borders and shadows, so the outline is an outer hexagon (the
+// element) and the colour an inner one (::before); today's loot turns the
+// outline orange and a selected pin's outline white.
+$hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+.map-pin.kind-mission {
+  position: relative; width: 20px; height: 22px;
+  border: 0; border-radius: 0; box-shadow: none; outline: none;
+  background: rgba(#000, .75); clip-path: $hex;
+  &::before { content: ''; position: absolute; inset: 2.5px; background: #5aa9e6; clip-path: $hex; }
+  &.has-loot { width: 24px; height: 26px; background: $accent; box-shadow: none; }
+  &.has-loot::before { inset: 3.5px; }
+  &.selected { background: #fff; }
+}
+.kind-mission .map-swatch { border-radius: 0; width: .8rem; height: .9rem; clip-path: $hex; }
 .map-vertex {
   width: 12px; height: 12px; border-radius: 50%; cursor: grab;
   background: #e8e2d6; border: 2px solid #ff6a13; box-shadow: 0 0 0 1px #000;
