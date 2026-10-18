@@ -19,6 +19,7 @@ import {
 } from '../data/map/overrides.ts';
 import type { LngLat, MapOverrides } from '../data/map/overrides.ts';
 import { cloudState, onCloudState, saveMapOverrides } from '../cloud/sync.ts';
+import { mergeNearby } from '../data/map/merge.ts';
 import { addAreaLayers, createMap, maplibregl, setAreaData } from './map-base.ts';
 import { el } from './dom.ts';
 
@@ -44,6 +45,15 @@ let selected = '';
 let status: { kind: 'idle' | 'saving' | 'ok' | 'error'; text?: string } = { kind: 'idle' };
 let confirmReset = false;
 let panel: HTMLElement;
+let toolbar: HTMLElement;
+
+/** 工具 / What a click or drag on the map does right now. */
+type Tool = 'move' | 'add' | 'delete';
+let tool: Tool = 'move';
+/** Corners closer than this on screen snap together when one is dropped. */
+const SNAP_PX = 12;
+/** "Merge nearby corners" joins corners closer than this on the ground. */
+const MERGE_M = 12;
 
 const places: MapPlace[] = [...STRONGHOLDS, ...MISSIONS, ...ALTARS];
 const nameOf = (id: string) => {
@@ -88,7 +98,7 @@ function placePins() {
       class: `map-pin kind-${p.kind}${selected === p.id ? ' selected' : ''}`,
       title: nameOf(p.id),
     }, [p.kind === 'altar' ? p.id.slice('altar-'.length) : '']);
-    const m = new maplibregl.Marker({ element: node, draggable: true }).setLngLat(pins.get(p.id)!).addTo(map);
+    const m = new maplibregl.Marker({ element: node, draggable: tool === 'move' }).setLngLat(pins.get(p.id)!).addTo(map);
     m.on('dragstart', () => { selected = p.id; renderPanel(); });
     m.on('drag', () => { const ll = m.getLngLat(); pins.set(p.id, [ll.lng, ll.lat]); renderPanel(); });
     m.on('dragend', () => { status = { kind: 'idle' }; renderPanel(); });
@@ -112,11 +122,46 @@ function removeCorner(refs: Ref[]) {
   return true;
 }
 
+/** Insert `point` (the same array) after each ref's index, in every ring that has the edge. */
+function insertOnEdge(refs: Ref[], point: LngLat) {
+  const byRing = new Map<string, number[]>();
+  for (const { key, i } of refs) byRing.set(key, [...(byRing.get(key) ?? []), i]);
+  for (const [key, idx] of byRing) {
+    const ring = rings.get(key)!;
+    for (const i of idx.sort((x, y) => y - x)) ring.splice(i + 1, 0, point);
+  }
+}
+
+/** Give each ring its own copies again, and drop any point now repeated in a row. */
+function settle() {
+  for (const ring of rings.values()) ring.forEach((p, i) => { ring[i] = [p[0], p[1]]; });
+  rings = mergeNearby(rings, 0.01).rings;
+}
+
+/** A corner dropped within SNAP_PX of another lands exactly on it. */
+function snapTarget(at: LngLat, exclude: LngLat | null): LngLat | null {
+  if (!map) return null;
+  const here = map.project(at);
+  let best: LngLat | null = null;
+  let bestD = SNAP_PX;
+  for (const ring of rings.values()) {
+    for (const p of ring) {
+      if (exclude && same(p, exclude)) continue;
+      const d = here.dist(map.project(p));
+      if (d > 0 && d < bestD) { bestD = d; best = p; }
+    }
+  }
+  return best ? [best[0], best[1]] : null;
+}
+
+let edges: { a: LngLat; b: LngLat; refs: Ref[] }[] = [];
+
 /**
- * 頂點與中點 / One handle per distinct corner, moving it in every ring that has
- * it; double-click removes it. Between corners, a faint "+" at each edge's
- * midpoint: drag it and a new corner is inserted there, in every ring that
- * shares that edge, so a shared border gains the corner on both sides.
+ * 頂點與中點 / One handle per distinct corner, acting on every ring that has it:
+ * drag to move (move tool, snapping onto a nearby corner), click to delete
+ * (delete tool). With the add tool, a "+" sits at each edge's midpoint —
+ * click or drag it to insert a corner — and a click anywhere on a line adds
+ * one there. Inserting on a shared edge adds the corner on both sides.
  */
 function placeVertices() {
   if (!map) return;
@@ -124,7 +169,7 @@ function placeVertices() {
   vertexMarkers.length = 0;
 
   const groups: { at: LngLat; refs: Ref[] }[] = [];
-  const edges: { a: LngLat; b: LngLat; refs: Ref[] }[] = [];
+  edges = [];
   for (const [key, ring] of rings) {
     for (let i = 0; i < ring.length - 1; i++) {
       const p = ring[i]!, q = ring[i + 1]!;
@@ -135,47 +180,68 @@ function placeVertices() {
     }
   }
 
+  const deleteCorner = (g: { refs: Ref[] }) => {
+    if (removeCorner(g.refs)) { status = { kind: 'idle' }; redrawAreas(); placeVertices(); }
+    else status = { kind: 'error', text: t('mapEditMinCorners') };
+    renderPanel();
+  };
+
   for (const g of groups) {
-    const node = el('div', { class: 'map-vertex', title: `${g.refs.map((r) => nameOf(r.key)).join(' · ')}\n${t('mapEditDblDelete')}` });
-    const m = new maplibregl.Marker({ element: node, draggable: true }).setLngLat(g.at).addTo(map);
-    m.on('drag', () => {
-      const ll = m.getLngLat();
+    const node = el('div', { class: `map-vertex tool-${tool}`, title: g.refs.map((r) => nameOf(r.key)).join(' · ') });
+    const m = new maplibregl.Marker({ element: node, draggable: tool === 'move' }).setLngLat(g.at).addTo(map);
+    const start: LngLat = [...g.at] as LngLat;
+    const moveTo = (ll: LngLat) => {
       for (const { key, i } of g.refs) {
         const ring = rings.get(key)!;
-        ring[i] = [ll.lng, ll.lat];
-        if (i === 0) ring[ring.length - 1] = [ll.lng, ll.lat];
+        ring[i] = [ll[0], ll[1]];
+        if (i === 0) ring[ring.length - 1] = [ll[0], ll[1]];
       }
-      g.at = [ll.lng, ll.lat];
+      g.at = ll;
+    };
+    m.on('drag', () => {
+      const ll = m.getLngLat();
+      moveTo([ll.lng, ll.lat]);
       selected = g.refs[0]!.key;
       redrawAreas();
       renderPanel();
     });
-    m.on('dragend', () => { status = { kind: 'idle' }; placeVertices(); renderPanel(); });
+    m.on('dragend', () => {
+      const snap = snapTarget(g.at, start);
+      if (snap) moveTo(snap);
+      settle();
+      status = snap ? { kind: 'ok', text: t('mapEditSnapped') } : { kind: 'idle' };
+      redrawAreas();
+      placeVertices();
+      renderPanel();
+    });
+    node.addEventListener('click', (e) => {
+      if (tool !== 'delete') return;
+      e.stopPropagation();
+      deleteCorner(g);
+    });
     node.addEventListener('dblclick', (e) => {
       e.stopPropagation();
-      if (removeCorner(g.refs)) { status = { kind: 'idle' }; redrawAreas(); placeVertices(); }
-      else status = { kind: 'error', text: t('mapEditMinCorners') };
-      renderPanel();
+      if (tool === 'move') deleteCorner(g);
     });
     vertexMarkers.push(m);
   }
 
+  if (tool !== 'add') return;
   for (const e of edges) {
     const mid: LngLat = [(e.a[0] + e.b[0]) / 2, (e.a[1] + e.b[1]) / 2];
     const node = el('div', { class: 'map-midpoint', title: t('mapEditAddCorner') }, ['+']);
     const m = new maplibregl.Marker({ element: node, draggable: true }).setLngLat(mid).addTo(map);
     // The same array goes into every ring sharing the edge, so one drag moves them all.
     const point: LngLat = [...mid] as LngLat;
-    m.on('dragstart', () => {
-      const byRing = new Map<string, number[]>();
-      for (const { key, i } of e.refs) byRing.set(key, [...(byRing.get(key) ?? []), i]);
-      for (const [key, idx] of byRing) {
-        const ring = rings.get(key)!;
-        for (const i of idx.sort((x, y) => y - x)) ring.splice(i + 1, 0, point);
-      }
+    let inserted = false;
+    const insert = () => {
+      if (inserted) return;
+      inserted = true;
+      insertOnEdge(e.refs, point);
       node.classList.add('map-vertex');
       selected = e.refs[0]!.key;
-    });
+    };
+    m.on('dragstart', insert);
     m.on('drag', () => {
       const ll = m.getLngLat();
       point[0] = ll.lng; point[1] = ll.lat;
@@ -183,14 +249,81 @@ function placeVertices() {
       renderPanel();
     });
     m.on('dragend', () => {
-      // Unshare the array again: later drags assign fresh points per ring.
-      for (const ring of rings.values()) ring.forEach((p, i) => { if (p === point) ring[i] = [...point] as LngLat; });
+      const snap = snapTarget(point, null);
+      if (snap) { point[0] = snap[0]; point[1] = snap[1]; }
+      settle();
       status = { kind: 'idle' };
+      redrawAreas();
+      placeVertices();
+      renderPanel();
+    });
+    node.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      insert();
+      settle();
+      status = { kind: 'idle' };
+      redrawAreas();
       placeVertices();
       renderPanel();
     });
     vertexMarkers.push(m);
   }
+}
+
+/** With the add tool, a click within a few pixels of a line adds a corner there. */
+function addOnLine(at: maplibregl.LngLat) {
+  if (!map || tool !== 'add') return;
+  const c = map.project(at);
+  let best: { e: (typeof edges)[number]; p: LngLat; d: number } | null = null;
+  for (const e of edges) {
+    const a = map.project(e.a), b = map.project(e.b);
+    const len2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2;
+    if (!len2) continue;
+    const tt = Math.max(0, Math.min(1, ((c.x - a.x) * (b.x - a.x) + (c.y - a.y) * (b.y - a.y)) / len2));
+    if (tt < 0.02 || tt > 0.98) continue; // that is a corner, not an edge
+    const px = { x: a.x + tt * (b.x - a.x), y: a.y + tt * (b.y - a.y) };
+    const d = Math.hypot(c.x - px.x, c.y - px.y);
+    if (d < 10 && (!best || d < best.d)) {
+      const ll = map.unproject([px.x, px.y]);
+      best = { e, p: [ll.lng, ll.lat], d };
+    }
+  }
+  if (!best) return;
+  insertOnEdge(best.e.refs, best.p);
+  settle();
+  selected = best.e.refs[0]!.key;
+  status = { kind: 'idle' };
+  redrawAreas();
+  placeVertices();
+  renderPanel();
+}
+
+function mergeAll() {
+  const { rings: merged, moved } = mergeNearby(rings, MERGE_M);
+  rings = merged;
+  status = { kind: 'ok', text: fill(t(moved ? 'mapEditMerged' : 'mapEditMergedNone'), { n: String(moved), m: String(MERGE_M) }) };
+  redrawAreas();
+  placeVertices();
+  renderPanel();
+}
+
+/** 浮動工具列 / The tool buttons floating over the map. */
+function renderToolbar() {
+  if (!toolbar) return;
+  const btn = (id: Tool, icon: string, label: string) => el('button', {
+    type: 'button', class: `map-tool${tool === id ? ' active' : ''}`, title: label, 'aria-pressed': tool === id ? 'true' : 'false',
+    onclick: () => { tool = id; placePins(); placeVertices(); renderToolbar(); },
+  }, [el('span', { class: 'map-tool-icon', 'aria-hidden': 'true' }, [icon]), label]);
+  toolbar.replaceChildren(
+    btn('move', '✥', t('mapToolMove')),
+    btn('add', '+', t('mapToolAdd')),
+    btn('delete', '×', t('mapToolDelete')),
+    el('span', { class: 'map-tool-sep' }),
+    el('button', { type: 'button', class: 'map-tool', title: fill(t('mapToolMergeHint'), { m: String(MERGE_M) }), onclick: mergeAll }, [
+      el('span', { class: 'map-tool-icon', 'aria-hidden': 'true' }, ['⊕']), t('mapToolMerge'),
+    ]),
+  );
+  toolbar.dataset.tool = tool;
 }
 
 function loadFrom(ov: MapOverrides) {
@@ -264,7 +397,7 @@ function renderPanel() {
           },
         }, [t('mapEditDiscard')]),
       ]),
-      status.kind === 'ok' ? el('p', { class: 'map-note ok' }, [t('mapEditSaved')]) : null,
+      status.kind === 'ok' ? el('p', { class: 'map-note ok' }, [status.text ?? t('mapEditSaved')]) : null,
       status.kind === 'error' ? el('p', { class: 'map-note error' }, [status.text ?? '']) : null,
       el('p', { class: 'map-note' }, [fill(t('mapEditOverrides'), { n: String(overrideCount) })]),
       overrideCount
@@ -299,8 +432,11 @@ export function renderMapEditor(root: HTMLElement) {
   if (!map) {
     panel = el('aside', { class: 'map-panel' });
     const canvas = el('div', { class: 'map-canvas' });
-    root.replaceChildren(canvas, panel);
+    toolbar = el('div', { class: 'map-toolbar', role: 'toolbar', 'aria-label': t('mapEditTitle') });
+    const wrap = el('div', { class: 'map-canvas-wrap' }, [canvas, toolbar]);
+    root.replaceChildren(wrap, panel);
     map = createMap(canvas);
+    map.on('click', (e) => addOnLine(e.lngLat));
     map.doubleClickZoom.disable(); // double-click deletes a corner here
     map.on('load', () => {
       addAreaLayers(map!, DISTRICTS, GAME_AREA);
@@ -310,5 +446,6 @@ export function renderMapEditor(root: HTMLElement) {
     });
     onCloudState(() => renderPanel());
   }
+  renderToolbar();
   renderPanel();
 }
