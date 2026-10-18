@@ -78,7 +78,7 @@ export function applyOverrides(ov: MapOverrides) {
     missions: MISSIONS.map(move),
     strongholds: STRONGHOLDS.map(move),
     altars: ALTARS.map(move),
-    districts: DISTRICTS.map((d): District => (ov.rings[d.name] ? { name: d.name, ring: ov.rings[d.name]! } : d)),
+    districts: DISTRICTS.map((d): District => (ov.rings[d.name] ? { ...d, ring: ov.rings[d.name]! } : d)),
     area: ov.rings[AREA_KEY] ?? GAME_AREA,
   };
 }

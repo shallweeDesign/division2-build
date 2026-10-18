@@ -82,7 +82,7 @@ const unsaved = () => [
 
 function redrawAreas() {
   if (!map) return;
-  const districts = DISTRICTS.map((d) => ({ name: d.name, ring: rings.get(d.name)! }));
+  const districts = DISTRICTS.map((d) => ({ ...d, ring: rings.get(d.name)! }));
   setAreaData(map, districts, rings.get(AREA_KEY)!);
 }
 

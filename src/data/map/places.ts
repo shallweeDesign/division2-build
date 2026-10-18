@@ -113,14 +113,33 @@ export const ALTARS: MapPlace[] = [
  * ≈ 38.886, Constitution ≈ 38.892, F ≈ 38.8973, I ≈ 38.902; Pennsylvania
  * Avenue is the diagonal between Downtown East and Federal Triangle.
  */
-export interface District { name: string; ring: [number, number][] }
+export interface District {
+  name: string;
+  ring: [number, number][];
+  /** Dark Zones are drawn in their own colour. */
+  dark?: boolean;
+}
 
 const W = -77.0565, X20 = -77.0445, X17 = -77.0396, X15 = -77.0336, X8 = -77.0230, XC = -77.0100, XE = -77.0000;
 const S = 38.8790, IND = 38.8860, CON = 38.8920, F = 38.8973, I = 38.9020, N = 38.9085;
+/** Dark Zone South's east and south edges. */
+const DZS_E = -77.0270, DZS_S = 38.8815;
 const PENN_15: [number, number] = [X15, 38.8957];
 const PENN_8: [number, number] = [X8, 38.8942];
 const PENN_3: [number, number] = [-77.0140, 38.8925];
 const box = (w: number, s: number, e: number, n: number): [number, number][] => [[w, s], [e, s], [e, n], [w, n], [w, s]];
+/** A regular pentagon `r` metres from centre to corner, one corner due north-west like the building. */
+function pentagon(lng: number, lat: number, r: number): [number, number][] {
+  const pts: [number, number][] = [];
+  for (let i = 0; i < 5; i++) {
+    const a = ((-72 * i + 110) * Math.PI) / 180;
+    pts.push([
+      Math.round((lng + (r * Math.cos(a)) / (111_320 * Math.cos((lat * Math.PI) / 180))) * 1e6) / 1e6,
+      Math.round((lat + (r * Math.sin(a)) / 110_540) * 1e6) / 1e6,
+    ]);
+  }
+  return [...pts, pts[0]!];
+}
 
 const DRAWN: District[] = [
   { name: 'West End', ring: box(W, F, X20, N) },
@@ -133,8 +152,25 @@ const DRAWN: District[] = [
   { name: 'Judiciary Square', ring: [PENN_8, PENN_3, [-77.0110, PENN_3[1]], [-77.0110, N], [X8, N], PENN_8] },
   { name: 'West Potomac Park', ring: box(W, S, X15, CON) },
   { name: 'East Mall', ring: box(X15, IND, XC, CON) },
-  { name: 'Southwest', ring: box(X15, S, XC, IND) },
+  // Dark Zone South is cut out of Southwest's north-west corner.
+  { name: 'Southwest', ring: [[X15, S], [XC, S], [XC, IND], [DZS_E, IND], [DZS_E, DZS_S], [X15, DZS_S], [X15, S]] },
   { name: 'Capitol Hill', ring: box(XC, 38.8840, XE, 38.8960) },
+  // 暗區 / The Dark Zones, from the wiki's zone pages: West is Georgetown
+  // (west of Rock Creek), East lies north of the Capitol (Labor Department,
+  // Tax Court), South is the waterfront strip from the Agriculture building
+  // on Independence Avenue down to Maryland Avenue's linear park.
+  {
+    name: 'Dark Zone West', dark: true,
+    ring: [[W, 38.9030], [W, N], [-77.0720, 38.9150], [-77.0745, 38.9060], [-77.0680, 38.9025], [-77.0610, 38.9012], [W, 38.9030]],
+  },
+  { name: 'Dark Zone East', dark: true, ring: box(-77.0110, 38.8960, -77.0030, 38.9050) },
+  { name: 'Dark Zone South', dark: true, ring: box(X15, DZS_S, DZS_E, IND) },
+  // The island's outline, and the Pentagon as the building's own shape.
+  {
+    name: 'Roosevelt Island',
+    ring: [[-77.0680, 38.9010], [-77.0630, 38.9016], [-77.0598, 38.8975], [-77.0618, 38.8930], [-77.0667, 38.8928], [-77.0697, 38.8968], [-77.0680, 38.9010]],
+  },
+  { name: 'The Pentagon', ring: pentagon(-77.0560, 38.8710, 300) },
 ];
 
 /**
@@ -179,7 +215,7 @@ export function splitAtJunctions(rings: [number, number][][]): [number, number][
 }
 
 const SPLIT = splitAtJunctions([...DRAWN.map((d) => d.ring), DRAWN_AREA]);
-export const DISTRICTS: District[] = DRAWN.map((d, i) => ({ name: d.name, ring: SPLIT[i]! }));
+export const DISTRICTS: District[] = DRAWN.map((d, i) => ({ ...d, ring: SPLIT[i]! }));
 export const GAME_AREA: [number, number][] = SPLIT[SPLIT.length - 1]!;
 
 /** Point-in-polygon (ray casting), for the tests and nothing else yet. */

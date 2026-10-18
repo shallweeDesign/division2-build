@@ -13,7 +13,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // chunk; Vite has to bundle that worker itself, or the URL it ends up with
 // points at a file that is not there and the base map stays black.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
-import { MAP_BOUNDS, MAP_CENTER } from '../data/map/places.ts';
+import { MAP_BOUNDS, MAP_CENTER, inRing } from '../data/map/places.ts';
 import type { District } from '../data/map/places.ts';
 
 maplibregl.setWorkerUrl(workerUrl);
@@ -59,17 +59,32 @@ const centre = (ring: Ring): [number, number] => {
 
 const districtsGeo = (districts: District[]) => ({
   type: 'FeatureCollection' as const,
-  features: districts.map((d) => ({ type: 'Feature' as const, properties: { name: d.name }, geometry: { type: 'Polygon' as const, coordinates: [d.ring] } })),
+  features: districts.map((d) => ({ type: 'Feature' as const, properties: { name: d.name, dark: !!d.dark }, geometry: { type: 'Polygon' as const, coordinates: [d.ring] } })),
 });
 const namesGeo = (districts: District[]) => ({
   type: 'FeatureCollection' as const,
-  features: districts.map((d) => ({ type: 'Feature' as const, properties: { name: d.name }, geometry: { type: 'Point' as const, coordinates: centre(d.ring) } })),
+  features: districts.map((d) => ({ type: 'Feature' as const, properties: { name: d.name, dark: !!d.dark }, geometry: { type: 'Point' as const, coordinates: centre(d.ring) } })),
 });
-// Everything outside the game's D.C.: the world with the game area cut out.
-const outsideGeo = (area: Ring) => ({
+
+/** Twice the signed area: positive when the ring runs counter-clockwise. */
+const winding = (r: Ring) => r.slice(0, -1).reduce((a, p, i) => a + p[0] * r[i + 1]![1] - r[i + 1]![0] * p[1], 0);
+const clockwise = (r: Ring): Ring => (winding(r) > 0 ? [...r].reverse() : r);
+
+// Everything outside the game's D.C.: the world with the game area, and each
+// zone that lies apart from it, cut out. Holes must wind against the outer
+// ring (counter-clockwise) for MapLibre to read them as holes.
+const outsideGeo = (area: Ring, apart: Ring[]) => ({
   type: 'Feature' as const, properties: {},
-  geometry: { type: 'Polygon' as const, coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]], area] },
+  geometry: {
+    type: 'Polygon' as const,
+    coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]], clockwise(area), ...apart.map(clockwise)],
+  },
 });
+// Which zones lie apart is worked out, not declared: the owner may redraw the
+// game area, and a zone it no longer covers should still be shown lit.
+let areaRing: Ring = [];
+const apartRings = (districts: District[]) =>
+  districts.filter((d) => areaRing.length && !inRing(centre(d.ring), areaRing)).map((d) => d.ring);
 
 /** The layers that the district toggle shows and hides (the mask stays). */
 export const DISTRICT_LAYERS = ['district-fill', 'district-line', 'district-label'];
@@ -79,13 +94,18 @@ export function addAreaLayers(map: maplibregl.Map, districts: District[], area: 
   if (map.getSource('districts')) { setAreaData(map, districts, area); return; }
   map.addSource('districts', { type: 'geojson', data: districtsGeo(districts) });
   map.addSource('district-names', { type: 'geojson', data: namesGeo(districts) });
-  map.addSource('outside', { type: 'geojson', data: outsideGeo(area) });
+  areaRing = area;
+  map.addSource('outside', { type: 'geojson', data: outsideGeo(area, apartRings(districts)) });
   map.addLayer({ id: 'outside-mask', type: 'fill', source: 'outside', paint: { 'fill-color': '#050607', 'fill-opacity': 0.82 } });
   map.addLayer({ id: 'outside-edge', type: 'line', source: 'outside', paint: { 'line-color': '#ff6a13', 'line-opacity': 0.5, 'line-width': 1.5 } });
-  map.addLayer({ id: 'district-fill', type: 'fill', source: 'districts', paint: { 'fill-color': '#ff6a13', 'fill-opacity': 0.02 } });
+  // Dark Zones in the game's purple; the rest a faint orange.
+  map.addLayer({
+    id: 'district-fill', type: 'fill', source: 'districts',
+    paint: { 'fill-color': ['case', ['get', 'dark'], '#9b5cff', '#ff6a13'], 'fill-opacity': ['case', ['get', 'dark'], 0.12, 0.02] },
+  });
   map.addLayer({
     id: 'district-line', type: 'line', source: 'districts',
-    paint: { 'line-color': '#e8e2d6', 'line-opacity': 0.55, 'line-width': 1.2, 'line-dasharray': [3, 2] },
+    paint: { 'line-color': ['case', ['get', 'dark'], '#b48cff', '#e8e2d6'], 'line-opacity': 0.6, 'line-width': 1.2, 'line-dasharray': [3, 2] },
   });
   map.addLayer({
     id: 'district-label', type: 'symbol', source: 'district-names',
@@ -93,12 +113,13 @@ export function addAreaLayers(map: maplibregl.Map, districts: District[], area: 
       'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 12,
       'text-transform': 'uppercase', 'text-letter-spacing': 0.12, 'text-allow-overlap': false,
     },
-    paint: { 'text-color': '#ffb27a', 'text-opacity': 0.75, 'text-halo-color': '#000', 'text-halo-width': 1.2 },
+    paint: { 'text-color': ['case', ['get', 'dark'], '#cdb0ff', '#ffb27a'], 'text-opacity': 0.8, 'text-halo-color': '#000', 'text-halo-width': 1.2 },
   });
 }
 
 export function setAreaData(map: maplibregl.Map, districts: District[], area: Ring) {
   (map.getSource('districts') as maplibregl.GeoJSONSource | undefined)?.setData(districtsGeo(districts));
   (map.getSource('district-names') as maplibregl.GeoJSONSource | undefined)?.setData(namesGeo(districts));
-  (map.getSource('outside') as maplibregl.GeoJSONSource | undefined)?.setData(outsideGeo(area));
+  areaRing = area;
+  (map.getSource('outside') as maplibregl.GeoJSONSource | undefined)?.setData(outsideGeo(area, apartRings(districts)));
 }
