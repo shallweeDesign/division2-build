@@ -40,6 +40,47 @@ let rings = copyRings(DEFAULT_RINGS);
 let savedPins = new Map(pins);
 let savedRings = copyRings(rings);
 
+/**
+ * 上一步／下一步 / Undo and redo: a snapshot of every position is taken just
+ * before each change (a drag starting, a corner added or deleted, a merge,
+ * a discard or reset), so one step undoes one whole action.
+ */
+type Snapshot = { pins: Map<string, LngLat>; rings: Map<string, LngLat[]> };
+const HISTORY_MAX = 100;
+let past: Snapshot[] = [];
+let future: Snapshot[] = [];
+const snapshot = (): Snapshot => ({ pins: new Map([...pins].map(([k, p]) => [k, [...p] as LngLat])), rings: copyRings(rings) });
+
+function record() {
+  past.push(snapshot());
+  if (past.length > HISTORY_MAX) past.shift();
+  future = [];
+}
+
+function restore(to: Snapshot) {
+  pins = to.pins;
+  rings = to.rings;
+  status = { kind: 'idle' };
+  redrawAreas();
+  placePins();
+  placeVertices();
+  renderPanel();
+}
+
+function undo() {
+  const prev = past.pop();
+  if (!prev) return;
+  future.push(snapshot());
+  restore(prev);
+}
+
+function redo() {
+  const next = future.pop();
+  if (!next) return;
+  past.push(snapshot());
+  restore(next);
+}
+
 let map: maplibregl.Map | null = null;
 let selected = '';
 let status: { kind: 'idle' | 'saving' | 'ok' | 'error'; text?: string } = { kind: 'idle' };
@@ -99,7 +140,7 @@ function placePins() {
       title: nameOf(p.id),
     }, [p.kind === 'altar' ? p.id.slice('altar-'.length) : '']);
     const m = new maplibregl.Marker({ element: node, draggable: tool === 'move' }).setLngLat(pins.get(p.id)!).addTo(map);
-    m.on('dragstart', () => { selected = p.id; renderPanel(); });
+    m.on('dragstart', () => { record(); selected = p.id; renderPanel(); });
     m.on('drag', () => { const ll = m.getLngLat(); pins.set(p.id, [ll.lng, ll.lat]); renderPanel(); });
     m.on('dragend', () => { status = { kind: 'idle' }; renderPanel(); });
     node.addEventListener('click', () => { selected = p.id; renderPanel(); });
@@ -181,8 +222,9 @@ function placeVertices() {
   }
 
   const deleteCorner = (g: { refs: Ref[] }) => {
+    record();
     if (removeCorner(g.refs)) { status = { kind: 'idle' }; redrawAreas(); placeVertices(); }
-    else status = { kind: 'error', text: t('mapEditMinCorners') };
+    else { past.pop(); status = { kind: 'error', text: t('mapEditMinCorners') }; }
     renderPanel();
   };
 
@@ -198,6 +240,7 @@ function placeVertices() {
       }
       g.at = ll;
     };
+    m.on('dragstart', record);
     m.on('drag', () => {
       const ll = m.getLngLat();
       moveTo([ll.lng, ll.lat]);
@@ -237,6 +280,7 @@ function placeVertices() {
     const insert = () => {
       if (inserted) return;
       inserted = true;
+      record();
       insertOnEdge(e.refs, point);
       node.classList.add('map-vertex');
       selected = e.refs[0]!.key;
@@ -289,6 +333,7 @@ function addOnLine(at: maplibregl.LngLat) {
     }
   }
   if (!best) return;
+  record();
   insertOnEdge(best.e.refs, best.p);
   settle();
   selected = best.e.refs[0]!.key;
@@ -300,6 +345,7 @@ function addOnLine(at: maplibregl.LngLat) {
 
 function mergeAll() {
   const { rings: merged, moved } = mergeNearby(rings, MERGE_M);
+  if (moved) record();
   rings = merged;
   status = { kind: 'ok', text: fill(t(moved ? 'mapEditMerged' : 'mapEditMergedNone'), { n: String(moved), m: String(MERGE_M) }) };
   redrawAreas();
@@ -319,6 +365,13 @@ function renderToolbar() {
     btn('add', '+', t('mapToolAdd')),
     btn('delete', '×', t('mapToolDelete')),
     el('span', { class: 'map-tool-sep' }),
+    el('button', {
+      type: 'button', class: 'map-tool', disabled: !past.length, title: `${t('mapToolUndo')} (⌘Z / Ctrl+Z)`, onclick: undo,
+    }, [el('span', { class: 'map-tool-icon', 'aria-hidden': 'true' }, ['↶']), t('mapToolUndo')]),
+    el('button', {
+      type: 'button', class: 'map-tool', disabled: !future.length, title: `${t('mapToolRedo')} (⇧⌘Z / Ctrl+Y)`, onclick: redo,
+    }, [el('span', { class: 'map-tool-icon', 'aria-hidden': 'true' }, ['↷']), t('mapToolRedo')]),
+    el('span', { class: 'map-tool-sep' }),
     el('button', { type: 'button', class: 'map-tool', title: fill(t('mapToolMergeHint'), { m: String(MERGE_M) }), onclick: mergeAll }, [
       el('span', { class: 'map-tool-icon', 'aria-hidden': 'true' }, ['⊕']), t('mapToolMerge'),
     ]),
@@ -327,6 +380,7 @@ function renderToolbar() {
 }
 
 function loadFrom(ov: MapOverrides) {
+  past = []; future = [];
   const cur = applyOverrides(ov);
   pins = new Map([...cur.strongholds, ...cur.missions, ...cur.altars].map((p) => [p.id, [p.lng, p.lat] as LngLat]));
   rings = new Map<string, LngLat[]>([...cur.districts.map((d) => [d.name, d.ring.map((p) => [...p] as LngLat)] as [string, LngLat[]]), [AREA_KEY, cur.area.map((p) => [...p] as LngLat)]]);
@@ -361,6 +415,7 @@ const rulesFor = (uid: string) => `match /map/{doc} {
 
 function renderPanel() {
   if (!panel) return;
+  renderToolbar();
   const changed = unsaved();
   const sel = selected;
   const selAt = sel ? pins.get(sel) : undefined;
@@ -392,6 +447,7 @@ function renderPanel() {
         el('button', {
           type: 'button', class: 'ghost', disabled: !changed.length,
           onclick: () => {
+            record();
             pins = new Map(savedPins); rings = copyRings(savedRings);
             redrawAreas(); placePins(); placeVertices(); renderPanel();
           },
@@ -406,6 +462,7 @@ function renderPanel() {
           onclick: () => {
             if (!confirmReset) { confirmReset = true; renderPanel(); return; }
             confirmReset = false;
+            record();
             pins = new Map(DEFAULT_PINS); rings = copyRings(DEFAULT_RINGS);
             redrawAreas(); placePins(); placeVertices();
             void save(emptyOverrides());
@@ -445,6 +502,12 @@ export function renderMapEditor(root: HTMLElement) {
       void loadMapOverrides().then(loadFrom);
     });
     onCloudState(() => renderPanel());
+    document.addEventListener('keydown', (e) => {
+      if (!(e.metaKey || e.ctrlKey) || (e.target as HTMLElement).closest('input, textarea')) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+    });
   }
   renderToolbar();
   renderPanel();

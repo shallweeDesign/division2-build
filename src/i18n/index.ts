@@ -169,6 +169,8 @@ const UI = {
   mapToolMove: { 'zh-tw': '移動錨點', en: 'Move' },
   mapToolAdd: { 'zh-tw': '增加錨點', en: 'Add' },
   mapToolDelete: { 'zh-tw': '刪除錨點', en: 'Delete' },
+  mapToolUndo: { 'zh-tw': '上一步', en: 'Undo' },
+  mapToolRedo: { 'zh-tw': '下一步', en: 'Redo' },
   mapToolMerge: { 'zh-tw': '合併鄰近錨點', en: 'Merge nearby' },
   mapToolMergeHint: { 'zh-tw': '把相距 {m} 公尺內的轉角合成一個', en: 'Join corners within {m} m of each other' },
   mapEditMerged: { 'zh-tw': '合併了 {n} 個相距 {m} 公尺內的錨點，記得儲存。', en: 'Merged {n} corners within {m} m — remember to save.' },
