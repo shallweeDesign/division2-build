@@ -22,6 +22,16 @@ import { applyOverrides, emptyOverrides, loadMapOverrides } from '../data/map/ov
 import { DISTRICT_LAYERS, addAreaLayers, createMap, maplibregl, setAreaData } from './map-base.ts';
 import { el } from './dom.ts';
 
+/**
+ * 祭壇截圖 / The owner's screenshots of each altar, `NN-scene` and `NN-map`,
+ * as URLs only: the images load when a popup opens, not with the page.
+ */
+const ALTAR_SHOTS = import.meta.glob('../assets/map/altars/*.webp', {
+  eager: true, query: '?url', import: 'default',
+}) as Record<string, string>;
+const altarShot = (n: number, kind: 'scene' | 'map') =>
+  ALTAR_SHOTS[`../assets/map/altars/${String(n).padStart(2, '0')}-${kind}.webp`];
+
 const fill = (s: string, vars: Record<string, string>) =>
   s.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '');
 
@@ -68,6 +78,7 @@ function popupContent(p: MapPlace) {
     el('strong', {}, [placeName(p)]),
     el('span', { class: 'map-pop-district' }, [p.district]),
     p.where ? el('p', {}, [zh ? p.where.zh : p.where.en]) : null,
+    p.kind === 'altar' ? altarPhotos(altarNo(p)) : null,
     target ? el('p', { class: 'map-pop-loot' }, [t('mapTodayLoot'), ' ', el('b', {}, [lootName(target)])]) : null,
     p.basedOn ? el('p', { class: 'map-pop-note' }, [fill(t('mapBasedOn'), { b: p.basedOn })]) : null,
     p.precision === 'approx' ? el('p', { class: 'map-pop-note' }, [t('mapApprox')]) : null,
@@ -81,6 +92,16 @@ function popupContent(p: MapPlace) {
       ])
       : null,
   ]);
+}
+
+function altarPhotos(n: number) {
+  const shots = (['scene', 'map'] as const)
+    .map((kind) => ({ kind, url: altarShot(n, kind) }))
+    .filter((x): x is { kind: 'scene' | 'map'; url: string } => !!x.url);
+  if (!shots.length) return null;
+  return el('div', { class: 'map-pop-shots' }, shots.map(({ kind, url }) => el('a', {
+    href: url, target: '_blank', rel: 'noopener', title: t(kind === 'scene' ? 'mapShotScene' : 'mapShotMap'),
+  }, [el('img', { src: url, alt: `${t(kind === 'scene' ? 'mapShotScene' : 'mapShotMap')} #${n}`, loading: 'lazy', width: 118, height: 66 })])));
 }
 
 function pinNode(p: MapPlace) {

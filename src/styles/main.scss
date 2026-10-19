@@ -818,6 +818,11 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   .map-pop-district { color: #666; font-size: .76rem; }
   .map-pop-loot b { color: #c2410c; }
   .map-pop-note { color: #777; font-size: .74rem; }
+  .map-pop-shots {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: .15rem 0;
+    a { display: block; line-height: 0; }
+    img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 2px; background: #222; }
+  }
   .map-pop-check { display: flex; align-items: center; gap: .35rem; cursor: pointer; }
 }
 

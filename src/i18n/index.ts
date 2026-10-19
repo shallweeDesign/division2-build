@@ -146,6 +146,8 @@ const UI = {
   mapAltarsTitle: { 'zh-tw': '血月祭壇（今日）', en: 'Red Moon altars (today)' },
   mapAltarProgress: { 'zh-tw': '已射 {n} / {total}', en: '{n} / {total} shot' },
   mapAltarReset: { 'zh-tw': '每天 {t} 重置（你的時區）。勾選只存在這個瀏覽器。', en: 'Resets daily at {t} your time. Ticks stay in this browser.' },
+  mapShotScene: { 'zh-tw': '現場畫面（點開看大圖）', en: 'In game (click for full size)' },
+  mapShotMap: { 'zh-tw': '遊戲地圖位置（點開看大圖）', en: 'On the in-game map (click for full size)' },
   mapAltarDone: { 'zh-tw': '今天已射', en: 'Shot today' },
   mapEventOff: { 'zh-tw': '血月活動期間 {a} ～ {b}，目前不在活動中。', en: 'The Red Moon event runs {a} to {b}; it is not on now.' },
   mapAltarSource: { 'zh-tw': '編號與區域依據', en: 'Numbers and districts from' },
