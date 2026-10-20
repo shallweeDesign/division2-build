@@ -21,6 +21,10 @@ import type { MapPlace, PlaceKind } from '../data/map/places.ts';
 import { applyOverrides, emptyOverrides, loadMapOverrides } from '../data/map/overrides.ts';
 import { DISTRICT_LAYERS, addAreaLayers, createMap, maplibregl, setAreaData } from './map-base.ts';
 import { el } from './dom.ts';
+import { openLightbox } from './lightbox.ts';
+import type { LightboxItem } from './lightbox.ts';
+import { onUserData, updateUserData, userData } from '../cloud/user-data.ts';
+import { setTicks, ticksFor } from '../data/map/ticks.ts';
 
 /**
  * 祭壇截圖 / The owner's screenshots of each altar, `NN-scene` and `NN-map`,
@@ -29,7 +33,9 @@ import { el } from './dom.ts';
 const ALTAR_SHOTS = import.meta.glob('../assets/map/altars/*.webp', {
   eager: true, query: '?url', import: 'default',
 }) as Record<string, string>;
-const altarShot = (n: number, kind: 'scene' | 'map') =>
+type ShotKind = 'scene' | 'map' | 'entrance';
+const SHOT_KINDS: ShotKind[] = ['scene', 'map', 'entrance'];
+const altarShot = (n: number, kind: ShotKind) =>
   ALTAR_SHOTS[`../assets/map/altars/${String(n).padStart(2, '0')}-${kind}.webp`];
 
 const fill = (s: string, vars: Record<string, string>) =>
@@ -46,12 +52,29 @@ const store = {
 };
 
 const LAYERS_KEY = 'd2b.map.layers';
-const altarKey = () => `d2b.map.altars.${rotationDate()}`;
+const OLD_TICKS = (day: string) => `d2b.map.altars.${day}`;
 
 type Layer = PlaceKind | 'district';
 type Layers = Record<Layer, boolean>;
 const layers: Layers = { district: true, mission: true, stronghold: true, altar: true, ...store.get<Partial<Layers>>(LAYERS_KEY, {}) };
-let found = new Set<number>(store.get<number[]>(altarKey(), []));
+/**
+ * 今日勾選 / Today's ticks live in the player's data, so a signed-in player
+ * sees them in every browser. Ticks from before that, kept in localStorage,
+ * are folded in once.
+ */
+const today = () => rotationDate();
+let found = new Set<number>(ticksFor(userData().collectibles, today()));
+function saveTicks(next: Set<number>) {
+  updateUserData((d) => setTicks(d.collectibles, today(), [...next]));
+}
+{
+  const old = store.get<number[]>(OLD_TICKS(today()), []);
+  if (old.length) {
+    found = new Set([...found, ...old]);
+    saveTicks(found);
+    try { localStorage.removeItem(OLD_TICKS(today())); } catch { /* nothing */ }
+  }
+}
 
 const altarNo = (p: MapPlace) => Number(p.id.slice('altar-'.length));
 const eventOn = (day = rotationDate()) => day >= RED_MOON.start && day <= RED_MOON.end;
@@ -94,14 +117,32 @@ function popupContent(p: MapPlace) {
   ]);
 }
 
+const shotLabel = (kind: ShotKind) => t(kind === 'scene' ? 'mapShotScene' : kind === 'map' ? 'mapShotMap' : 'mapShotEntrance');
+
+/** Every altar screenshot in order, for stepping through in the lightbox. */
+function allShots(): (LightboxItem & { n: number; kind: ShotKind })[] {
+  const zh = lang() === 'zh-tw';
+  return ALTARS.flatMap((p) => SHOT_KINDS.flatMap((kind) => {
+    const n = altarNo(p);
+    const src = altarShot(n, kind);
+    if (!src) return [];
+    const where = p.where ? (zh ? p.where.zh : p.where.en) : '';
+    return [{ n, kind, src, caption: `#${n} ${p.district} · ${shotLabel(kind)} — ${where}` }];
+  }));
+}
+
 function altarPhotos(n: number) {
-  const shots = (['scene', 'map'] as const)
+  const shots = SHOT_KINDS
     .map((kind) => ({ kind, url: altarShot(n, kind) }))
-    .filter((x): x is { kind: 'scene' | 'map'; url: string } => !!x.url);
+    .filter((x): x is { kind: ShotKind; url: string } => !!x.url);
   if (!shots.length) return null;
-  return el('div', { class: 'map-pop-shots' }, shots.map(({ kind, url }) => el('a', {
-    href: url, target: '_blank', rel: 'noopener', title: t(kind === 'scene' ? 'mapShotScene' : 'mapShotMap'),
-  }, [el('img', { src: url, alt: `${t(kind === 'scene' ? 'mapShotScene' : 'mapShotMap')} #${n}`, loading: 'lazy', width: 118, height: 66 })])));
+  return el('div', { class: `map-pop-shots n${shots.length}` }, shots.map(({ kind, url }) => el('button', {
+    type: 'button', class: 'map-pop-shot', title: shotLabel(kind),
+    onclick: () => {
+      const all = allShots();
+      openLightbox(all, all.findIndex((x) => x.n === n && x.kind === kind));
+    },
+  }, [el('img', { src: url, alt: `${shotLabel(kind)} #${n}`, loading: 'lazy', width: 118, height: 66 })])));
 }
 
 function pinNode(p: MapPlace) {
@@ -141,8 +182,10 @@ function placeMarkers() {
 }
 
 function toggleAltar(n: number) {
-  if (found.has(n)) found.delete(n); else found.add(n);
-  store.set(altarKey(), [...found]);
+  const next = new Set(found);
+  if (next.has(n)) next.delete(n); else next.add(n);
+  found = next;
+  saveTicks(next);
   markers.get(`altar-${n}`)?.node.classList.toggle('done', found.has(n));
   onChange();
 }
@@ -155,11 +198,12 @@ function flyTo(id: string) {
 }
 
 let onChange = () => {};
+let stopTicks: (() => void) | null = null;
 
 function renderPanel(panel: HTMLElement) {
   const day = rotationDate();
   // A new reset since the ticks were loaded: start the day clean.
-  found = new Set(store.get<number[]>(altarKey(), []));
+  found = new Set(ticksFor(userData().collectibles, day));
 
   const toggle = (kind: Layer, count: number, disabled = false) => el('label', { class: `map-toggle kind-${kind}` }, [
     el('input', {
@@ -203,7 +247,7 @@ function renderPanel(panel: HTMLElement) {
           ]))),
           el('button', {
             class: 'ghost', type: 'button',
-            onclick: () => { found.clear(); store.set(altarKey(), []); placeMarkers(); onChange(); },
+            onclick: () => { found = new Set(); saveTicks(found); placeMarkers(); onChange(); },
           }, [t('collectReset')]),
         ])
         : el('p', { class: 'map-note' }, [fill(t('mapEventOff'), { a: RED_MOON.start, b: RED_MOON.end })]),
@@ -249,6 +293,16 @@ export function renderMapPage(root: HTMLElement) {
   }
   const p = panel;
   onChange = () => renderPanel(p);
+  if (!stopTicks) {
+    // Ticks made in another browser (or merged in on sign-in) arrive here.
+    stopTicks = onUserData(() => {
+      const now = ticksFor(userData().collectibles, today());
+      if (now.length === found.size && now.every((x) => found.has(x))) return;
+      found = new Set(now);
+      for (const m of markers.values()) if (m.place.kind === 'altar') m.node.classList.toggle('done', found.has(altarNo(m.place)));
+      onChange();
+    });
+  }
   renderPanel(p);
   if (map?.loaded()) placeMarkers();
 }
