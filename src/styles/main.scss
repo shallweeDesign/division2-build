@@ -449,8 +449,13 @@ select, input[type="number"] {
   background: $bg; color: $text; overflow: auto;
   overscroll-behavior: contain; // reaching the end does not scroll the page behind
   &::backdrop { background: rgba(0, 0, 0, .65); }
+  // Phones: pinned to the top rather than centred. Where a browser's idea of
+  // the visible height is off (Brave on iOS, with its tab strip), a centred
+  // dialog pushed its header off the top; pinned, any excess falls below,
+  // inside the dialog's own scroll.
   @media (max-width: 600px) {
     width: calc(100vw - 16px);
+    margin: calc(env(safe-area-inset-top, 0px) + 8px) auto auto;
     max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   }
 }
