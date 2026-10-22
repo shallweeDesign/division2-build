@@ -6,12 +6,14 @@
  */
 import { t } from '../i18n/index.ts';
 import { el } from './dom.ts';
+import { lockScroll } from './scroll-lock.ts';
 
 export interface LightboxItem { src: string; caption: string }
 
 export function openLightbox(items: LightboxItem[], start: number) {
   if (!items.length) return;
   let i = Math.max(0, Math.min(start, items.length - 1));
+  const unlock = lockScroll();
 
   const img = el('img', { class: 'lightbox-img', alt: '' });
   const caption = el('figcaption', { class: 'lightbox-caption' });
@@ -28,7 +30,7 @@ export function openLightbox(items: LightboxItem[], start: number) {
   const close = () => {
     overlay.remove();
     document.removeEventListener('keydown', onKey);
-    document.documentElement.style.overflow = '';
+    unlock();
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') close();
@@ -62,5 +64,4 @@ export function openLightbox(items: LightboxItem[], start: number) {
   show();
   document.body.append(overlay);
   document.addEventListener('keydown', onKey);
-  document.documentElement.style.overflow = 'hidden';
 }

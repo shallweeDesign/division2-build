@@ -438,12 +438,25 @@ select, input[type="number"] {
 }
 
 // 詳情視窗 / The loot detail popup.
+// On phones `100vh` is the height with the address bar hidden, so a centred
+// dialog sized by it slid under the browser's own bar; `100dvh` is what is
+// actually visible, and the safe-area insets keep it clear of a notch.
 .loot-dialog {
-  width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 48px);
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   padding: 0; border: 1px solid $line; border-top: 2px solid $accent; border-radius: 3px;
   background: $bg; color: $text; overflow: auto;
+  overscroll-behavior: contain; // reaching the end does not scroll the page behind
   &::backdrop { background: rgba(0, 0, 0, .65); }
+  @media (max-width: 600px) {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
 }
+
+// 鎖定捲動 / Set while a popup is open (`ui/scroll-lock.ts`).
+html.scroll-locked, html.scroll-locked body { overflow: hidden; overscroll-behavior: none; }
 
 .d-header {
   position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; gap: 1rem;
@@ -838,7 +851,7 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   @media (max-width: 600px) { padding-inline: .5rem; }
 }
 .lightbox-figure { position: relative; margin: 0; max-width: 100%; max-height: 100%; line-height: 0; }
-.lightbox-img { display: block; max-width: 100%; max-height: calc(100vh - 6rem); width: auto; height: auto; border-radius: 3px; }
+.lightbox-img { display: block; max-width: 100%; max-height: calc(100dvh - 6rem); width: auto; height: auto; border-radius: 3px; }
 .lightbox-caption {
   position: absolute; left: 0; right: 0; bottom: 0; padding: .55rem .8rem;
   background: rgba(0, 0, 0, .62); color: #fff; font-size: .88rem; line-height: 1.5;

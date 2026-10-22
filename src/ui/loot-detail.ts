@@ -19,6 +19,7 @@ import { gearSlotDetail, gearSlotOf } from '../model/gear-slot-detail.ts';
 import type { GearSlotDetail } from '../model/gear-slot-detail.ts';
 import type { WeaponDetail, WeaponView } from '../model/weapon-detail.ts';
 import { el } from './dom.ts';
+import { lockScroll } from './scroll-lock.ts';
 
 let dataPromise: Promise<SetData> | null = null;
 
@@ -181,7 +182,8 @@ export function openLootDetail(name: string) {
   ]);
   // A click that lands on the dialog element itself is on the backdrop.
   dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
-  dialog.addEventListener('close', () => dialog.remove());
+  const unlock = lockScroll();
+  dialog.addEventListener('close', () => { unlock(); dialog.remove(); });
   document.body.append(dialog);
   dialog.showModal();
 
