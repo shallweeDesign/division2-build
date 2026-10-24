@@ -21,17 +21,21 @@
  */
 import { ITEM_ZH } from './names.ts';
 import { STAT_ZH } from './stats.ts';
-import { TALENT_ZH } from './talents.ts';
+import { TALENT_TEXT_ZH, TALENT_ZH } from './talents.ts';
 import { SKILL_ZH } from './skills.ts';
 import { MISSION_ZH } from './loot.ts';
 import { LOOT_ALIAS } from '../model/loot-vocab.ts';
 
 /**
- * 試算表網址 / The published sheet, as `File → Share → Publish to web → CSV`.
- * Empty disables the overlay entirely, which is the state to leave it in if
- * the sheet ever goes away.
+ * 試算表網址 / The published sheet (`File → Share → Publish to web`), and the
+ * tabs read from it: 武器, 裝備, 可選天賦, 技能, by their `gid`. The original flat
+ * `kind | key | zh-tw` tab was replaced by 武器 and is no longer read.
+ * Empty `TAB_GIDS` disables the overlay entirely, which is the state to leave
+ * it in if the sheet ever goes away.
  */
-export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT90rli4ZWC-uiz9b5vP5qBQr7A0nPfPf_uTtPLi0NxEpMgvPQLZlJ5BtvqS582pFZLgtBB2cvTGFcG/pub?output=csv';
+export const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT90rli4ZWC-uiz9b5vP5qBQr7A0nPfPf_uTtPLi0NxEpMgvPQLZlJ5BtvqS582pFZLgtBB2cvTGFcG/pub';
+export const TAB_GIDS = ['0', '1776046889', '868500504', '56059846'];
+export const TAB_URLS = TAB_GIDS.map((gid) => `${SHEET_URL}?gid=${gid}&single=true&output=csv`);
 
 /** 放棄等待的時間 / Give up after this; the baked names are already on screen. */
 const TIMEOUT_MS = 6000;
@@ -84,47 +88,105 @@ export interface OverrideResult {
   unknownKinds: string[];
 }
 
-/** 套用列 / Merge parsed rows over the baked maps. Exported for the tests. */
-export function applyRows(rows: string[][]): OverrideResult {
-  const [header, ...body] = rows;
-  if (!header) return { applied: 0, unknownKinds: [] };
+/**
+ * 階層分頁的欄位 / Columns of the tabbed layout. Each header ends in a key word
+ * after its Chinese label — `名稱中文 name-zh` — and only the key word is read,
+ * so the label can be reworded freely.
+ */
+const TAB_COLUMNS: [source: string, zh: string, target: Record<string, string>][] = [
+  ['name', 'name-zh', ITEM_ZH],
+  ['talent', 'talent-zh', TALENT_ZH],
+  ['talent', 'text-zh', TALENT_TEXT_ZH],
+  ['skill', 'skill-zh', SKILL_ZH],
+  ['variant', 'variant-zh', SKILL_ZH],
+];
 
+interface Candidate { target: Record<string, string>; key: string; zh: string }
+
+/** `kind | key | zh-tw` rows, the original flat layout. */
+function flatCandidates(header: string[], body: string[][], unknown: Set<string>): Candidate[] {
   const col = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
-  const kindAt = col('kind');
-  const keyAt = col('key');
-  const zhAt = col('zh-tw');
-  if (kindAt < 0 || keyAt < 0 || zhAt < 0) return { applied: 0, unknownKinds: [] };
+  const [kindAt, keyAt, zhAt] = [col('kind'), col('key'), col('zh-tw')];
+  if (kindAt < 0 || keyAt < 0 || zhAt < 0) return [];
+  return body.flatMap((r) => {
+    const [kind, key, zh] = [r[kindAt], r[keyAt], r[zhAt]].map((c) => (c ?? '').trim());
+    if (!kind || !key || !zh) return [];        // an empty cell must not blank a name
+    const target = TARGETS[kind];
+    if (!target) { unknown.add(kind); return []; }
+    return [{ target, key, zh }];
+  });
+}
+
+/** A row per weapon or piece, with its talent beside it. */
+function tabCandidates(header: string[], body: string[][]): Candidate[] {
+  const keyWord = (h: string) => h.trim().split(/\s+/).pop()!.toLowerCase();
+  const col = (name: string) => header.findIndex((h) => keyWord(h) === name);
+  return TAB_COLUMNS.flatMap(([source, zh, target]) => {
+    const [srcAt, zhAt] = [col(source), col(zh)];
+    if (srcAt < 0 || zhAt < 0) return [];
+    return body.flatMap((r) => {
+      const key = (r[srcAt] ?? '').trim();
+      const value = (r[zhAt] ?? '').trim();
+      return key && value ? [{ target, key, zh: value }] : [];
+    });
+  });
+}
+
+/**
+ * 套用 / Merge every table over the baked maps. Exported for the tests.
+ *
+ * The same talent sits on many rows, so one key can arrive with different
+ * values: the rows not yet updated still carry the old name. Whichever value
+ * differs from what is already shown is the edit, and that one wins.
+ */
+export function applyTables(tables: string[][][]): OverrideResult {
+  const unknown = new Set<string>();
+  const byKey = new Map<Record<string, string>, Map<string, string[]>>();
+  for (const [header, ...body] of tables) {
+    if (!header) continue;
+    for (const c of [...flatCandidates(header, body, unknown), ...tabCandidates(header, body)]) {
+      const keys = byKey.get(c.target) ?? byKey.set(c.target, new Map()).get(c.target)!;
+      keys.set(c.key, [...(keys.get(c.key) ?? []), c.zh]);
+    }
+  }
 
   let applied = 0;
-  const unknown = new Set<string>();
-  for (const r of body) {
-    const kind = (r[kindAt] ?? '').trim();
-    const key = (r[keyAt] ?? '').trim();
-    const zh = (r[zhAt] ?? '').trim();
-    if (!kind || !key || !zh) continue;          // an empty cell must not blank a name
-    const target = TARGETS[kind];
-    if (!target) { unknown.add(kind); continue; }
-    target[key] = zh;
-    applied += 1;
+  for (const [target, keys] of byKey) {
+    for (const [key, values] of keys) {
+      target[key] = values.find((v) => v !== target[key]) ?? values[0]!;
+      applied += 1;
+    }
   }
   return { applied, unknownKinds: [...unknown] };
 }
+
+/** One table on its own; the shape the flat sheet has always used. */
+export const applyRows = (rows: string[][]) => applyTables([rows]);
 
 /**
  * 抓取並套用 / Fetch the sheet and lay it over the baked names.
  * Resolves to null when there is nothing to apply, for any reason at all.
  */
-export async function loadOverrides(url = SHEET_URL): Promise<OverrideResult | null> {
-  if (!url) return null;
+export async function loadOverrides(
+  urls: string | string[] = TAB_URLS,
+): Promise<OverrideResult | null> {
+  const list = (Array.isArray(urls) ? urls : [urls]).filter(Boolean);
+  if (!list.length) return null;
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), TIMEOUT_MS);
+  // Each tab fails on its own: one unpublished tab must not cost the others.
+  const fetchOne = async (url: string) => {
+    try {
+      const res = await fetch(url, { signal: abort.signal, redirect: 'follow' });
+      return res.ok ? parseCsv(await res.text()) : null;
+    } catch {
+      return null;                                // offline, blocked, slow, gone
+    }
+  };
   try {
-    const res = await fetch(url, { signal: abort.signal, redirect: 'follow' });
-    if (!res.ok) return null;
-    const result = applyRows(parseCsv(await res.text()));
+    const tables = (await Promise.all(list.map(fetchOne))).filter((t): t is string[][] => t !== null);
+    const result = applyTables(tables);
     return result.applied > 0 ? result : null;
-  } catch {
-    return null;                                  // offline, blocked, slow, gone
   } finally {
     clearTimeout(timer);
   }

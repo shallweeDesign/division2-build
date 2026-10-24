@@ -2,7 +2,7 @@
 import type { GameData } from '../model/types.ts';
 import { computeBuild } from '../model/calc/index.ts';
 import { MAX_PIECES } from '../model/calc/constants.ts';
-import { t, tSet, tStat, tTalent } from '../i18n/index.ts';
+import { t, tSet, tStat, tTalent, tTalentText } from '../i18n/index.ts';
 import { build } from './store.ts';
 import { clear, el } from './dom.ts';
 
@@ -73,7 +73,7 @@ export function renderSummaryPanel(root: HTMLElement, data: GameData) {
                 el('span', { class: 'talent-source' }, [tSet(tl.source)]),
               ]),
               tl.description
-                ? el('p', { class: 'talent-desc' }, [tl.description])
+                ? el('p', { class: 'talent-desc' }, [tTalentText(tl.name, tl.description)])
                 : el('p', { class: 'talent-desc muted' }, [t('noTalentText')]),
             ])))
         : el('p', { class: 'muted' }, [t('noTalents')]),

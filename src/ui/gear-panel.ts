@@ -3,7 +3,7 @@ import type { AttributeDef, AttributeSlotSpec, GameData, GearItem, GearSlot, Val
 import { GEAR_LAYOUT } from '../model/types.ts';
 import type { SlotChoice } from '../model/build.ts';
 import { attributeIndex, defaultChoice, defaultChoicesFor, eligible } from '../model/calc/index.ts';
-import { t, tCategory, tItem, tQuality, tSet, tSlot, tStat, tTalent } from '../i18n/index.ts';
+import { t, tCategory, tItem, tQuality, tSet, tSlot, tStat, tTalent, tTalentText } from '../i18n/index.ts';
 import { build, update } from './store.ts';
 import { clear, el, select } from './dom.ts';
 
@@ -23,10 +23,54 @@ function attrLabel(data: GameData, def: AttributeDef) {
 
 const fmtValue = (v: Value | null) => (v === null ? '' : v.percent ? `${v.n}%` : String(v.n));
 
-function itemOptions(data: GameData, slot: GearSlot): [string, string][] {
-  return [...data.gear[slot]]
-    .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
-    .map((i) => [i.id, `[${tQuality(quality(i))}] ${tItem(i.name, slot, i.brandSet ?? i.gearSet)}`]);
+/** Exotic pieces belong to no brand or set, so they get a group of their own. */
+const EXOTIC = '__exotic__';
+const groupOf = (i: GearItem) => i.brandSet ?? i.gearSet ?? EXOTIC;
+
+/**
+ * 品牌的暫存選擇 / Brand picked before a piece is. The build only stores an
+ * item id, so the first level of the cascade lives here until then.
+ */
+const picking: Partial<Record<GearSlot, string | null>> = {};
+
+/** 品牌 → 型號 / The two cascading selects at the top of a card. */
+function itemPickers(data: GameData, attrs: Map<string, AttributeDef>, slot: GearSlot, item: GearItem | null) {
+  const pool = data.gear[slot];
+  const group = item ? groupOf(item) : picking[slot] ?? null;
+
+  const equip = (i: GearItem | null) => update('gear', (b) => {
+    b.gear[slot] = i
+      ? { itemId: i.id, ...defaultChoicesFor(i, data, attrs) }
+      : { itemId: null, cores: [], minors: [], mods: [], talent: null };
+  });
+  const choose = (next: string | null) => {
+    picking[slot] = next;
+    const kin = pool.filter((i) => groupOf(i) === next);
+    // A brand with a single piece in this slot has nothing left to choose.
+    equip(kin.length === 1 ? kin[0]! : null);
+  };
+
+  // Brands, then gear sets, then exotics — each alphabetical.
+  const kindRank = (g: string) => (g === EXOTIC ? 2 : pool.some((i) => i.gearSet === g) ? 1 : 0);
+  const groups = [...new Set(pool.map(groupOf))].sort((a, b) => kindRank(a) - kindRank(b) || a.localeCompare(b));
+  const groupLabel = (g: string) =>
+    g === EXOTIC ? tQuality('exotic') : kindRank(g) === 1 ? `${tSet(g)}（${tQuality('gearset')}）` : tSet(g);
+  const items = group
+    ? pool.filter((i) => groupOf(i) === group).sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
+    : [];
+  const itemLabel = (i: GearItem) => {
+    const name = tItem(i.name, slot, i.brandSet ?? i.gearSet);
+    return i.isNamed ? `${name}（${tQuality('named')}）` : name;
+  };
+
+  const row = (label: Parameters<typeof t>[0], control: HTMLElement) =>
+    el('div', { class: 'row row-pick' }, [el('span', { class: 'row-label' }, [t(label)]), control]);
+
+  return [
+    row('gearBrand', select(group, groups.map((g) => [g, groupLabel(g)]), (v) => choose(v || null), t('empty'))),
+    row('model', select(item?.id ?? null, items.map((i) => [i.id, itemLabel(i)]),
+      (v) => equip(items.find((i) => i.id === v) ?? null), '—')),
+  ];
 }
 
 /**
@@ -90,23 +134,35 @@ function attributeRow(
   ]);
 }
 
-function talentRow(data: GameData, slot: GearSlot, item: GearItem) {
-  if (!item.talent) return null;
+/** 天賦＋天賦內容 / The talent, then its wording beneath. */
+function talentRows(data: GameData, slot: GearSlot, item: GearItem) {
+  if (!item.talent) return [];
+  const text = (name: string | null) => {
+    const d = name ? data.gearTalents.find((tl) => tl.name === name)?.description : null;
+    return d && name ? el('p', { class: 'talent-text' }, [tTalentText(name, d)]) : null;
+  };
   if (item.talent.mode === 'fixed') {
-    return el('div', { class: 'row row-talent' }, [
-      el('span', { class: 'row-label' }, [t('talent')]),
-      el('span', { class: 'fixed-stat' }, [tTalent(item.talent.name)]),
-    ]);
+    return [
+      el('div', { class: 'row row-talent' }, [
+        el('span', { class: 'row-label' }, [t('talent')]),
+        el('span', { class: 'fixed-stat' }, [tTalent(item.talent.name)]),
+      ]),
+      text(item.talent.name),
+    ];
   }
   const slug = item.talent.slug;
   const pool = data.gearTalents.filter((tl) => tl.compatibility.includes(slug));
-  if (!pool.length) return null;
-  const state = build().gear[slot];
-  return el('div', { class: 'row row-talent' }, [
-    el('span', { class: 'row-label' }, [t('talent')]),
-    select(state.talent, pool.map((tl) => [tl.name, tTalent(tl.name)] as [string, string]),
-      (v) => update('summary', (b) => { b.gear[slot].talent = v || null; }), '—'),
-  ]);
+  if (!pool.length) return [];
+  const chosen = build().gear[slot].talent;
+  return [
+    el('div', { class: 'row row-talent' }, [
+      el('span', { class: 'row-label' }, [t('talent')]),
+      // 'gear' rather than 'summary' so the wording below follows the pick.
+      select(chosen, pool.map((tl) => [tl.name, tTalent(tl.name)] as [string, string]),
+        (v) => update('gear', (b) => { b.gear[slot].talent = v || null; }), '—'),
+    ]),
+    text(chosen),
+  ];
 }
 
 function slotCard(data: GameData, attrs: Map<string, AttributeDef>, slot: GearSlot) {
@@ -120,22 +176,15 @@ function slotCard(data: GameData, attrs: Map<string, AttributeDef>, slot: GearSl
       rows.push(attributeRow(data, attrs, slot, 'minors', i, spec,
         spec.mode === 'choice' ? categoryLabel(spec.slug) : t('attribute'))));
     item.mods.forEach((spec, i) => rows.push(attributeRow(data, attrs, slot, 'mods', i, spec, t('mod'))));
-    rows.push(talentRow(data, slot, item));
   }
 
-  const setName = item?.brandSet ?? item?.gearSet ?? null;
   return el('section', { class: `slot-card${item ? '' : ' is-empty'}` }, [
     el('header', {}, [
       el('h3', {}, [tSlot(slot)]),
       item ? el('span', { class: `pill q-${quality(item)}` }, [tQuality(quality(item))]) : null,
     ]),
-    select(state.itemId, itemOptions(data, slot), (v) =>
-      update('gear', (b) => {
-        if (!v) { b.gear[slot] = { itemId: null, cores: [], minors: [], mods: [], talent: null }; return; }
-        const picked = data.gear[slot].find((i) => i.id === v)!;
-        b.gear[slot] = { itemId: v, ...defaultChoicesFor(picked, data, attrs) };
-      }), t('empty')),
-    setName ? el('p', { class: `brand${item?.gearSet ? ' is-set' : ''}` }, [tSet(setName)]) : null,
+    ...itemPickers(data, attrs, slot, item),
+    ...(item ? talentRows(data, slot, item) : []),
     ...rows,
   ]);
 }

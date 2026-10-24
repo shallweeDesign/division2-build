@@ -9,7 +9,7 @@ import type { AttributeDef, AttributeSlotSpec, GameData, Value, Weapon, WeaponSl
 import { WEAPON_SLOTS } from '../model/types.ts';
 import type { SlotChoice } from '../model/build.ts';
 import { attributeIndex, defaultChoice, eligible, eligibleMods } from '../model/calc/index.ts';
-import { t, tQuality, tStat, tTalent, tWeapon, tWeaponSlot, tWeaponType } from '../i18n/index.ts';
+import { t, tQuality, tStat, tTalent, tTalentText, tWeapon, tWeaponSlot, tWeaponType } from '../i18n/index.ts';
 import { build, update } from './store.ts';
 import { clear, el, select } from './dom.ts';
 
@@ -22,12 +22,60 @@ const fmtValue = (v: Value | null) => (v === null ? '' : v.percent ? `${v.n}%` :
 const fits = (w: Weapon, slot: WeaponSlot) =>
   slot === 'sidearm' ? w.slotType === 'sidearm' : w.slotType === 'main';
 
-function weaponOptions(data: GameData, slot: WeaponSlot): [string, string][] {
-  return data.weapons
-    .filter((w) => fits(w, slot))
-    .sort((a, b) => rank(a) - rank(b) || a.weaponType.localeCompare(b.weaponType) || a.name.localeCompare(b.name))
-    .map((w) => [w.id, `[${tWeaponType(w.weaponType)}] ${tWeapon(w.name)}`]);
+/**
+ * 種類／型號的暫存選擇 / Type and model picked before a weapon is.
+ *
+ * The build only stores a weapon id, so the first two levels of the cascade
+ * live here until a weapon is chosen; after that they are read off the weapon.
+ */
+const picking: Partial<Record<WeaponSlot, { type: string | null; family: string | null }>> = {};
+
+const uniq = (xs: string[]) => [...new Set(xs)];
+
+/** 種類 → 型號 → 名稱 / The three cascading selects at the top of a card. */
+function weaponPickers(data: GameData, attrs: Map<string, AttributeDef>, slot: WeaponSlot, weapon: Weapon | null) {
+  const pool = data.weapons.filter((w) => fits(w, slot));
+  const type = weapon?.weaponType ?? picking[slot]?.type ?? null;
+  const family = weapon?.family ?? picking[slot]?.family ?? null;
+
+  const equip = (w: Weapon | null) => update('gear', (b) => {
+    b.weapons[slot] = w
+      ? { weaponId: w.id, ...defaultsFor(w, attrs) }
+      : { weaponId: null, cores: [], minors: [], mods: [], talent: null };
+  });
+  const choose = (next: { type: string | null; family: string | null }) => {
+    picking[slot] = next;
+    const kin = pool.filter((w) => w.weaponType === next.type && w.family === next.family);
+    // A model with a single weapon has nothing left to choose.
+    equip(kin.length === 1 ? kin[0]! : null);
+  };
+
+  const types = uniq(pool.map((w) => w.weaponType))
+    .sort((a, b) => (TYPE_ORDER[a] ?? 99) - (TYPE_ORDER[b] ?? 99));
+  const families = type ? uniq(pool.filter((w) => w.weaponType === type).map((w) => w.family)).sort() : [];
+  const names = type && family
+    ? pool.filter((w) => w.weaponType === type && w.family === family)
+      .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
+    : [];
+
+  const row = (label: Parameters<typeof t>[0], control: HTMLElement) =>
+    el('div', { class: 'row row-pick' }, [el('span', { class: 'row-label' }, [t(label)]), control]);
+
+  return [
+    row('weaponKind', select(type, types.map((x) => [x, tWeaponType(x)]),
+      (v) => choose({ type: v || null, family: null }), t('empty'))),
+    row('model', select(family, families.map((x) => [x, x]),
+      (v) => choose({ type, family: v || null }), '—')),
+    row('weaponName', select(weapon?.id ?? null,
+      names.map((w) => [w.id, rank(w) ? `${tWeapon(w.name)}（${tQuality(quality(w))}）` : tWeapon(w.name)]),
+      (v) => equip(names.find((w) => w.id === v) ?? null), '—')),
+  ];
 }
+
+/** Display order of weapon types, as in the game's inventory. */
+const TYPE_ORDER: Record<string, number> = {
+  'Assault Rifle': 0, SMG: 1, LMG: 2, Rifle: 3, 'Marksman Rifle': 4, Shotgun: 5, Pistol: 6,
+};
 
 /** The choices a freshly equipped weapon starts with: fixed slots decided, rest empty. */
 function defaultsFor(w: Weapon, attrs: Map<string, AttributeDef>) {
@@ -114,26 +162,39 @@ function modRow(data: GameData, slot: WeaponSlot, index: number, spec: Weapon['m
   ]);
 }
 
-function talentRow(data: GameData, slot: WeaponSlot, weapon: Weapon) {
-  if (!weapon.talent) return null;
+/** 天賦＋天賦內容 / The talent, then its wording beneath. */
+function talentRows(data: GameData, slot: WeaponSlot, weapon: Weapon) {
+  if (!weapon.talent) return [];
+  const text = (name: string | null) => {
+    const d = name ? data.weaponTalents.find((tl) => tl.name === name)?.description : null;
+    return d && name ? el('p', { class: 'talent-text' }, [tTalentText(name, d)]) : null;
+  };
   if (weapon.talent.mode === 'fixed') {
-    return el('div', { class: 'row row-talent' }, [
-      el('span', { class: 'row-label' }, [t('talent')]),
-      el('span', { class: 'fixed-stat' }, [tTalent(weapon.talent.name)]),
-    ]);
+    return [
+      el('div', { class: 'row row-talent' }, [
+        el('span', { class: 'row-label' }, [t('fixedTalent')]),
+        el('span', { class: 'fixed-stat' }, [tTalent(weapon.talent.name)]),
+      ]),
+      text(weapon.talent.name),
+    ];
   }
   const slug = weapon.talent.slug;
   const pool = data.weaponTalents.filter((tl) => tl.compatibility.includes(slug));
-  if (!pool.length) return null;
-  return el('div', { class: 'row row-talent' }, [
-    el('span', { class: 'row-label' }, [t('talent')]),
-    select(
-      build().weapons[slot].talent,
-      pool.map((tl) => [tl.name, tTalent(tl.name)] as [string, string]),
-      (v) => update('summary', (b) => { b.weapons[slot].talent = v || null; }),
-      '—',
-    ),
-  ]);
+  if (!pool.length) return [];
+  const chosen = build().weapons[slot].talent;
+  return [
+    el('div', { class: 'row row-talent' }, [
+      el('span', { class: 'row-label' }, [t('talent')]),
+      select(
+        chosen,
+        pool.map((tl) => [tl.name, tTalent(tl.name)] as [string, string]),
+        // 'gear' rather than 'summary' so the wording below follows the pick.
+        (v) => update('gear', (b) => { b.weapons[slot].talent = v || null; }),
+        '—',
+      ),
+    ]),
+    text(chosen),
+  ];
 }
 
 function slotCard(data: GameData, attrs: Map<string, AttributeDef>, slot: WeaponSlot) {
@@ -145,7 +206,6 @@ function slotCard(data: GameData, attrs: Map<string, AttributeDef>, slot: Weapon
     weapon.cores.forEach((spec, i) => rows.push(attributeRow(data, attrs, slot, 'cores', i, spec, t('core'))));
     weapon.minors.forEach((spec, i) => rows.push(attributeRow(data, attrs, slot, 'minors', i, spec, t('attribute'))));
     weapon.mods.forEach((spec, i) => rows.push(modRow(data, slot, i, spec)));
-    rows.push(talentRow(data, slot, weapon));
   }
 
   return el('section', { class: `slot-card${weapon ? '' : ' is-empty'}` }, [
@@ -153,12 +213,8 @@ function slotCard(data: GameData, attrs: Map<string, AttributeDef>, slot: Weapon
       el('h3', {}, [tWeaponSlot(slot)]),
       weapon ? el('span', { class: `pill q-${quality(weapon)}` }, [tQuality(quality(weapon))]) : null,
     ]),
-    select(state.weaponId, weaponOptions(data, slot), (v) =>
-      update('gear', (b) => {
-        if (!v) { b.weapons[slot] = { weaponId: null, cores: [], minors: [], mods: [], talent: null }; return; }
-        const picked = data.weapons.find((w) => w.id === v)!;
-        b.weapons[slot] = { weaponId: v, ...defaultsFor(picked, attrs) };
-      }), t('empty')),
+    ...weaponPickers(data, attrs, slot, weapon),
+    ...(weapon ? talentRows(data, slot, weapon) : []),
     weapon
       ? el('p', { class: 'weapon-base' }, [
           [

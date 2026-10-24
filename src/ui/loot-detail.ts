@@ -10,7 +10,7 @@
  * A native `<dialog>`: Esc closes it, focus is trapped and restored, and the
  * backdrop dims the page without any of that being written here.
  */
-import { lang, t, tDetailTier, tGearTier, tItem, tSet, tSlot, tStat, tTalent, tWeapon, tWeaponType } from '../i18n/index.ts';
+import { lang, t, tDetailTier, tGearTier, tItem, tSet, tSlot, tStat, tTalent, tTalentText, tWeapon, tWeaponType } from '../i18n/index.ts';
 import type { Category, Value } from '../model/types.ts';
 import { setDetail } from '../model/set-detail.ts';
 import type { CoreView, MinorView, PieceView, SetData, SetDetail } from '../model/set-detail.ts';
@@ -62,7 +62,7 @@ function parts(data: SetData) {
   const talentBlock = (name: string, description: string | null, cls = 'd-talent') =>
     el('div', { class: cls }, [
       el('strong', {}, bilingual(tTalent(name), name)),
-      description ? el('p', {}, [description]) : null,
+      description ? el('p', {}, [tTalentText(name, description)]) : null,
     ]);
 
   /**

@@ -189,6 +189,13 @@ const GEAR: Record<string, string> = {
  */
 export const TALENT_ZH: Record<string, string> = { ...GEAR, ...WEAPON, ...EXOTIC };
 
+/**
+ * 天賦內容中譯 / Chinese wording for talent descriptions, keyed by the exact
+ * talent name. Nothing is built in — every line comes from the sheet. A
+ * `Perfect` variant has its own numbers, so unlike its name it is never derived.
+ */
+export const TALENT_TEXT_ZH: Record<string, string> = {};
+
 export function talentZh(name: string): string | undefined {
   const direct = TALENT_ZH[name];
   if (direct) return direct;

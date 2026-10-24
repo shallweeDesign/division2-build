@@ -4,10 +4,10 @@
  * fails here rather than surfacing as wrong numbers in the UI.
  */
 import { describe, expect, it } from 'vitest';
-import { TALENT_ZH, talentZh } from '../src/i18n/talents.ts';
+import { TALENT_TEXT_ZH, TALENT_ZH, talentZh } from '../src/i18n/talents.ts';
 import { GEAR_LAYOUT, WEAPON_MOD_CATEGORIES } from '../src/model/types.ts';
 import { ITEM_ZH } from '../src/i18n/names.ts';
-import { applyRows, loadOverrides, parseCsv } from '../src/i18n/overrides.ts';
+import { applyRows, applyTables, loadOverrides, parseCsv } from '../src/i18n/overrides.ts';
 import { SKILL_ZH } from '../src/i18n/skills.ts';
 const tItemName = (n: string) => ITEM_ZH[n] ?? n;
 import { readFileSync } from 'node:fs';
@@ -414,6 +414,40 @@ describe('sheet overrides', () => {
   it('does nothing when the header is not the shape we expect', () => {
     expect(applyRows(parseCsv('a,b\n1,2\n')).applied).toBe(0);
     expect(applyRows([]).applied).toBe(0);
+  });
+
+  it('reads names, talents and talent wording from a tabbed sheet', () => {
+    const before = { item: ITEM_ZH['Robin'], talent: TALENT_ZH['Ranger'] };
+    applyTables([parseCsv(
+      '種類 type,名稱 name,名稱中文 name-zh,固有天賦 talent,天賦中文 talent-zh,天賦內容 text,內容中文 text-zh\n'
+      + 'Rifle,Robin,測試名,Ranger,測試天賦,English text,測試內容\n',
+    )]);
+    expect(ITEM_ZH['Robin']).toBe('測試名');
+    expect(TALENT_ZH['Ranger']).toBe('測試天賦');
+    expect(TALENT_TEXT_ZH['Ranger']).toBe('測試內容');
+    ITEM_ZH['Robin'] = before.item!;
+    TALENT_ZH['Ranger'] = before.talent!;
+    delete TALENT_TEXT_ZH['Ranger'];
+  });
+
+  it('reads parent skills and their variants from the skills tab', () => {
+    applyTables([parseCsv('技能 skill,技能中文 skill-zh,變體 variant,變體中文 variant-zh\nTrap,測試陷阱,Shock Trap,測試電擊陷阱\n')]);
+    expect(SKILL_ZH['Trap']).toBe('測試陷阱');
+    expect(SKILL_ZH['Shock Trap']).toBe('測試電擊陷阱');
+    delete SKILL_ZH['Trap'];
+    delete SKILL_ZH['Shock Trap'];
+  });
+
+  it('lets an edit win over the rows still carrying the old name', () => {
+    // The same talent repeats down the tab; only one row was changed.
+    const before = TALENT_ZH['Ranger']!;
+    const header = '固有天賦 talent,天賦中文 talent-zh';
+    applyTables([
+      parseCsv(`${header}\nRanger,${before}\nRanger,新譯名\nRanger,${before}\n`),
+      parseCsv(`kind,key,zh-tw\ntalent,Ranger,${before}\n`),
+    ]);
+    expect(TALENT_ZH['Ranger']).toBe('新譯名');
+    TALENT_ZH['Ranger'] = before;
   });
 
   it('resolves to null rather than throwing when the sheet is unreachable', async () => {

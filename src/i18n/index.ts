@@ -1,7 +1,7 @@
 /** 介面文案 / UI strings, with the language persisted across visits. */
 import { STAT_ZH } from './stats.ts';
 import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
-import { talentZh } from './talents.ts';
+import { TALENT_TEXT_ZH, talentZh } from './talents.ts';
 import { SKILL_ZH } from './skills.ts';
 import { updateUserData, userData } from '../cloud/user-data.ts';
 
@@ -78,6 +78,11 @@ const UI = {
   optics: { 'zh-tw': '瞄準鏡', en: 'Optics' },
   muzzle: { 'zh-tw': '槍口', en: 'Muzzle' },
   underbarrel: { 'zh-tw': '槍管下方', en: 'Underbarrel' },
+  weaponKind: { 'zh-tw': '種類', en: 'Type' },
+  model: { 'zh-tw': '型號', en: 'Model' },
+  gearBrand: { 'zh-tw': '品牌', en: 'Brand' },
+  weaponName: { 'zh-tw': '名稱', en: 'Name' },
+  fixedTalent: { 'zh-tw': '固有天賦', en: 'Built-in talent' },
   weaponSlot: {
     primary:   { 'zh-tw': '主要武器', en: 'Primary' },
     secondary: { 'zh-tw': '次要武器', en: 'Secondary' },
@@ -410,6 +415,10 @@ export const tSet = (name: string) => (current === 'zh-tw' ? SET_ZH[name] ?? nam
  */
 export const tTalent = (name: string) =>
   (current === 'zh-tw' ? talentZh(name) ?? name : name);
+
+/** 天賦內容 / A talent's wording, in Chinese once the sheet supplies it. */
+export const tTalentText = (name: string, en: string) =>
+  (current === 'zh-tw' ? TALENT_TEXT_ZH[name] ?? en : en);
 
 /**
  * 裝備名 / Item name in the active language.
