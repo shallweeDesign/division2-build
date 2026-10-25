@@ -114,13 +114,13 @@ const EXOTIC: Record<string, string> = {
   'Electromagnetic Accelerator': '電磁加速器',
   'Faster Than Reloading': '快於換彈',
   'Full Stop': '完全停歇',
-  'Gangland Hit': '結黨追隨',
+  'Gangland Hit': '結黨追擊',
   'Geri and Freki': '基立和庫力奇',
-  'High Priority Target': '高優先',
+  'High Priority Target': '高優先頭號目標',
   'In Plain Sight': '一目了然',
   'Incessant Chatter': '喋喋不休',
   'Mosquito Song': '蚊曲',
-  'Ortiz Assault Interface': '奧提茲',
+  'Ortiz Assault Interface': '奧提茲突擊介面',
   'Pakhan': '帕坎',
   'Payment in Kind': '實物支付',
   'Perturb': '干擾',
@@ -134,6 +134,46 @@ const EXOTIC: Record<string, string> = {
   'The Trap': '標記陷阱',
   'Transfusion': '輸血',
   'Unnerve': '頹喪',
+  // 2026-10-25, from the user's exotic lists: each talent sits beside its
+  // item, and every item's name already matched ours, so the item pins the talent.
+  "Eagle's Strike / Tenacity": '雄鷹突擊／堅持',
+  'Liberty or Death': '不自由，毋寧死',
+  'Shakedown': '確認並執行',
+  "You can look...but you can't touch": '你只能看……但不能碰',
+};
+
+/** 奇特裝備天賦 / Exotic gear talents, matched the same way. */
+const EXOTIC_GEAR: Record<string, string> = {
+  'Ablative Nano-Plating': '隔離奈米鍍層',
+  'Abridged': '天賦互連',
+  'Alternating Current': '技能分流',
+  'Bleeding Edge': '嗜血先鋒',
+  'Bob and Weave': '閃轉騰挪',
+  'Chemical Agent': '化學物質',
+  'Combat Medic': '戰鬥軍醫',
+  'Counter': '反制',
+  'Defibrillator': '電擊器',
+  "Dragon's Glare": '龍之怒視',
+  'Escape Plan': '脫逃計畫',
+  'Hoarder': '拾荒者',
+  'Impervious': '不為所動',
+  'Iron Grip': '鐵腕',
+  'Kill Confirmed': '已確認擊殺',
+  'One in the Hand... / ...Two in the Bag': '一個在手……／……兩個在包',
+  'Ostracize': '孤立排擠',
+  'Over the top': '超出標準',
+  'Pack Instincts': '群體本能',
+  'Parkour!': '跑酷',
+  'Quick Draw': '快速拔槍',
+  'Rebalance': '重新平衡',
+  'Resourceful': '足智多謀',
+  'Slotted': '欄位加成',
+  'Smoke Screen': '煙幕',
+  'Stand Your Ground': '砲火下的優雅',
+  'Toxic Delivery': '有害快遞',
+  'Transference Overclock': '超頻轉移',
+  'Vicious Cycle': '凶狠循環',
+  'Weakest Link': '致命菜雞',
 };
 
 /** 一般天賦 / Base talents, each confirmed against its values in `data/`. */
@@ -196,7 +236,7 @@ const GEAR: Record<string, string> = {
  * variants of ordinary talents — the same talent with the source's parenthesised
  * values. The Chinese name is derived rather than listed twice.
  */
-export const TALENT_ZH: Record<string, string> = { ...GEAR, ...WEAPON, ...EXOTIC };
+export const TALENT_ZH: Record<string, string> = { ...GEAR, ...WEAPON, ...EXOTIC, ...EXOTIC_GEAR };
 
 /**
  * 天賦內容中譯 / Chinese wording for talent descriptions, keyed by the exact

@@ -22,7 +22,9 @@ import type { GameData, GearItem, Weapon } from '../src/model/types.ts';
 import raw from '../src/data/generated/game-data.json' with { type: 'json' };
 
 const data = raw as unknown as GameData;
-await loadOverrides();
+// NO_SHEET=1 starts from the built-in names alone — for re-seeding a tab after
+// the built-in names improved, when the sheet still holds the old ones.
+if (!process.env.NO_SHEET) await loadOverrides();
 
 const TYPE_ZH: Record<string, string> = {
   'Assault Rifle': '突擊步槍', SMG: '衝鋒槍', LMG: '輕機槍', Rifle: '步槍',
