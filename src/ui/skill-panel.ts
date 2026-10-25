@@ -14,7 +14,7 @@ import type { GameData } from '../model/types.ts';
 import { computeSkills } from '../model/calc/skills.ts';
 import type { StatTotal } from '../model/calc/index.ts';
 import { SKILL_TIER_CAP } from '../model/calc/constants.ts';
-import { t, tSkill, tStat } from '../i18n/index.ts';
+import { t, tSkill, tSkillVariant, tStat } from '../i18n/index.ts';
 import { build, update } from './store.ts';
 import { clear, el } from './dom.ts';
 
@@ -35,7 +35,7 @@ function picker(data: GameData, slot: number) {
   for (const [parent, variants] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
     const group = el('optgroup', { label: tSkill(parent) });
     for (const name of variants) {
-      group.append(el('option', { value: name, disabled: taken.has(parent) }, [tSkill(name)]));
+      group.append(el('option', { value: name, disabled: taken.has(parent) }, [tSkillVariant(name, parent)]));
     }
     s.append(group);
   }

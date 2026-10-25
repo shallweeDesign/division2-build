@@ -295,10 +295,6 @@ const UI = {
     en: 'No “{n}” in the gear dataset.',
   },
   detailFailed: { 'zh-tw': '裝備資料載入失敗，請重新整理頁面再試。', en: 'Couldn’t load the gear data. Reload the page and try again.' },
-  detailTalentEn: {
-    'zh-tw': '天賦說明來自資料庫，目前只有英文。',
-    en: 'Talent wording comes from the dataset.',
-  },
   detailOpen: { 'zh-tw': '查看 {n} 的套裝效果與各部位裝備', en: 'Show set bonuses and pieces for {n}' },
   lootUnknown: { 'zh-tw': '未辨識', en: 'Unrecognised' },
   lootUnknownHint: {
@@ -406,6 +402,18 @@ export const tWeapon = (name: string) => (current === 'zh-tw' ? ITEM_ZH[name] ??
  * own is left in English whole, rather than half-translated.
  */
 export const tSkill = (name: string) => (current === 'zh-tw' ? SKILL_ZH[name] ?? name : name);
+
+/**
+ * 技能變體全名 / A variant's full name. The sheet may give only the variant's
+ * own word (精準), which reads as nothing once the select is closed, so the
+ * parent skill is appended the way the game names them: 精準 + 智能掩護.
+ */
+export function tSkillVariant(name: string, parent: string) {
+  const own = tSkill(name);
+  if (current !== 'zh-tw' || own === name) return own;
+  const parentZh = tSkill(parent);
+  return parentZh === parent || own.includes(parentZh) ? own : `${own}${parentZh}`;
+}
 
 export const tSet = (name: string) => (current === 'zh-tw' ? SET_ZH[name] ?? name : name);
 

@@ -25,6 +25,8 @@
  * owner has download and copy switched off, so nothing was exported from it.
  */
 
+import { TALENT_TEXT } from './talent-text.ts';
+
 /**
  * 武器天賦 / Weapon talents. Not shown anywhere yet — the weapons UI is Phase 3 —
  * but named here while the source was open, on the same terms as the rest.
@@ -59,6 +61,13 @@ const WEAPON: Record<string, string> = {
   'Pummel': '拳拳到肉',
   'Pumped Up': '充滿幹勁',
   'Ranger': '遊騎兵',
+  // Added 2026-10-25, matched on the damage and duration values. Flatline's
+  // reference lists 3 (2) kills where data/ has 4 (3); its 15% (20%) pulse
+  // amplification identifies it regardless.
+  'Determined': '堅定',
+  'Flatline': '死亡平線',
+  'In Sync': '同步傷害',
+  'Sledgehammer': '大鎚',
   'Reformation': '改革',
   'Sadist': '虐待狂',
   'Salvage': '拾荒',
@@ -191,10 +200,11 @@ export const TALENT_ZH: Record<string, string> = { ...GEAR, ...WEAPON, ...EXOTIC
 
 /**
  * 天賦內容中譯 / Chinese wording for talent descriptions, keyed by the exact
- * talent name. Nothing is built in — every line comes from the sheet. A
- * `Perfect` variant has its own numbers, so unlike its name it is never derived.
+ * talent name: the built-in lines from `talent-text.ts`, with the sheet laid
+ * over them. A `Perfect` variant has its own numbers, so unlike its name it is
+ * never derived.
  */
-export const TALENT_TEXT_ZH: Record<string, string> = {};
+export const TALENT_TEXT_ZH: Record<string, string> = { ...TALENT_TEXT };
 
 export function talentZh(name: string): string | undefined {
   const direct = TALENT_ZH[name];

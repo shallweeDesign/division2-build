@@ -187,7 +187,6 @@ export function openLootDetail(name: string) {
   document.body.append(dialog);
   dialog.showModal();
 
-  const note = () => (lang() === 'zh-tw' ? el('p', { class: 'd-note' }, [t('detailTalentEn')]) : null);
   const show = (nodes: (HTMLElement | null)[]) =>
     body.replaceChildren(...nodes.filter((n): n is HTMLElement => n !== null));
 
@@ -202,7 +201,7 @@ export function openLootDetail(name: string) {
           el('span', { class: 'd-count' }, [fill(t('detailPieceCount'), { n: String(total) })]),
         ]),
       );
-      show([...renderGearSlot(d, data), note()]);
+      show(renderGearSlot(d, data));
       return;
     }
     if (weaponClassOf(name)) {
@@ -215,7 +214,7 @@ export function openLootDetail(name: string) {
           el('span', { class: 'd-count' }, [fill(t('detailWeaponCount'), { n: String(total) })]),
         ]),
       );
-      show([...renderWeapons(d, data), note()]);
+      show(renderWeapons(d, data));
       return;
     }
 
@@ -234,7 +233,7 @@ export function openLootDetail(name: string) {
         coreName ? el('span', { class: `d-chip ${catClass(d.coreCategory)}` }, [`${t('detailCore')}：${coreName}`]) : null,
       ]),
     );
-    show([...renderSet(d, data), note()]);
+    show(renderSet(d, data));
   }, () => {
     show([el('p', { class: 'loot-notice' }, [t('detailFailed')])]);
   });
