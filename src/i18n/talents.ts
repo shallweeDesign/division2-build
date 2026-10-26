@@ -81,6 +81,30 @@ const WEAPON: Record<string, string> = {
   'Unhinged': '精神錯亂',
   'Unwavering': '屹立不搖',
   'Vindictive': '報復之心',
+  // 自譯 / Translated here from the English (2026-10-26): no in-game or
+  // reference name was at hand. The sheet's talent-zh column overrides any.
+  // Picked on weapons; the Perfect forms derive from these.
+  'Back and Forth': '來回切換',
+  'Boiling Point': '沸點',
+  'Head Scratcher': '傷腦筋',
+  'Immobilize': '定身',
+  'Rifleman': '步槍兵',
+  // Perfect stat talents on named weapons; no plain form exists to derive from.
+  'Perfect Accurate': '完美精準',
+  'Perfect Allegro': '完美快板',
+  'Perfect Distance': '完美遠距',
+  'Perfect Extra': '完美額外',
+  'Perfect Jazz Hands': '完美爵士手',
+  'Perfect Optimized': '完美最佳化',
+  // Talents unique to one named weapon.
+  'Blossom Harvest': '繁花收割',
+  'Foam at the Mouth': '口吐白沫',
+  'Future Perfection': '未來完美',
+  'Hidden Rock': '暗礁',
+  'Primer Rounds': '底火彈',
+  'Refreshing': '清涼',
+  'Sport Mode': '運動模式',
+  'Swift': '迅捷',
 };
 
 
