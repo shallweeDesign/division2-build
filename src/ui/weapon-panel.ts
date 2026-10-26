@@ -8,6 +8,7 @@
 import type { AttributeDef, AttributeSlotSpec, GameData, Value, Weapon, WeaponSlot } from '../model/types.ts';
 import { WEAPON_SLOTS } from '../model/types.ts';
 import type { SlotChoice } from '../model/build.ts';
+import { dropOtherExotics } from '../model/build.ts';
 import { attributeIndex, defaultChoice, eligible, eligibleMods } from '../model/calc/index.ts';
 import { t, tQuality, tStat, tTalent, tTalentText, tWeapon, tWeaponSlot, tWeaponType } from '../i18n/index.ts';
 import { build, update } from './store.ts';
@@ -32,46 +33,64 @@ const picking: Partial<Record<WeaponSlot, { type: string | null; family: string 
 
 const uniq = (xs: string[]) => [...new Set(xs)];
 
-/** 奇特武器自成一組 / Exotics sit in their own group after the models, as on the gear cards. */
+/**
+ * 奇特武器自成一組 / Exotics are reachable two ways: as 奇特 at the end of a
+ * type's models, as on the gear cards, or as 奇特 among the types, where the
+ * second level lists weapon types instead of models.
+ */
 const EXOTIC = '__exotic__';
 const familyOf = (w: Weapon) => (w.isExotic ? EXOTIC : w.family);
+const byType = (a: string, b: string) => (TYPE_ORDER[a] ?? 99) - (TYPE_ORDER[b] ?? 99);
+
+/** Whether a weapon sits under the chosen type and model. */
+const inGroup = (w: Weapon, type: string | null, family: string | null) =>
+  type === EXOTIC ? w.isExotic && w.weaponType === family : w.weaponType === type && familyOf(w) === family;
 
 /** 種類 → 型號 → 名稱 / The three cascading selects at the top of a card. */
 function weaponPickers(data: GameData, attrs: Map<string, AttributeDef>, slot: WeaponSlot, weapon: Weapon | null) {
   const pool = data.weapons.filter((w) => fits(w, slot));
-  const type = weapon?.weaponType ?? picking[slot]?.type ?? null;
-  const family = (weapon && familyOf(weapon)) ?? picking[slot]?.family ?? null;
+  // An exotic picked through the 奇特 type keeps showing that path.
+  const viaExotic = picking[slot]?.type === EXOTIC && (!weapon || weapon.isExotic);
+  const type = viaExotic ? EXOTIC : weapon?.weaponType ?? picking[slot]?.type ?? null;
+  const family = viaExotic
+    ? weapon?.weaponType ?? picking[slot]?.family ?? null
+    : (weapon && familyOf(weapon)) ?? picking[slot]?.family ?? null;
 
   const equip = (w: Weapon | null) => update('gear', (b) => {
     b.weapons[slot] = w
       ? { weaponId: w.id, ...defaultsFor(w, attrs) }
       : { weaponId: null, cores: [], minors: [], mods: [], talent: null };
+    if (w?.isExotic) for (const s of dropOtherExotics(b, data, { weapon: slot })) delete picking[s];
   });
   const choose = (next: { type: string | null; family: string | null }) => {
     picking[slot] = next;
-    const kin = pool.filter((w) => w.weaponType === next.type && familyOf(w) === next.family);
+    const kin = pool.filter((w) => inGroup(w, next.type, next.family));
     // A model with a single weapon has nothing left to choose.
     equip(kin.length === 1 ? kin[0]! : null);
   };
 
-  const types = uniq(pool.map((w) => w.weaponType))
-    .sort((a, b) => (TYPE_ORDER[a] ?? 99) - (TYPE_ORDER[b] ?? 99));
-  const families = type
-    ? uniq(pool.filter((w) => w.weaponType === type).map(familyOf))
-      .sort((a, b) => Number(a === EXOTIC) - Number(b === EXOTIC) || a.localeCompare(b))
-    : [];
+  const types = uniq(pool.map((w) => w.weaponType)).sort(byType);
+  if (pool.some((w) => w.isExotic)) types.push(EXOTIC);
+  const families = type === EXOTIC
+    ? uniq(pool.filter((w) => w.isExotic).map((w) => w.weaponType)).sort(byType)
+    : type
+      ? uniq(pool.filter((w) => w.weaponType === type).map(familyOf))
+        .sort((a, b) => Number(a === EXOTIC) - Number(b === EXOTIC) || a.localeCompare(b))
+      : [];
   const names = type && family
-    ? pool.filter((w) => w.weaponType === type && familyOf(w) === family)
+    ? pool.filter((w) => inGroup(w, type, family))
       .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
     : [];
+  const familyLabel = (x: string) =>
+    type === EXOTIC ? tWeaponType(x) : x === EXOTIC ? tQuality('exotic') : x;
 
   const row = (label: Parameters<typeof t>[0], control: HTMLElement) =>
     el('div', { class: 'row row-pick' }, [el('span', { class: 'row-label' }, [t(label)]), control]);
 
   return [
-    row('weaponKind', select(type, types.map((x) => [x, tWeaponType(x)]),
+    row('weaponKind', select(type, types.map((x) => [x, x === EXOTIC ? tQuality('exotic') : tWeaponType(x)]),
       (v) => choose({ type: v || null, family: null }), t('empty'))),
-    row('model', select(family, families.map((x) => [x, x === EXOTIC ? tQuality('exotic') : x]),
+    row('model', select(family, families.map((x) => [x, familyLabel(x)]),
       (v) => choose({ type, family: v || null }), '—')),
     row('weaponName', select(weapon?.id ?? null,
       names.map((w) => [w.id, w.isNamed ? `${tWeapon(w.name)}（${tQuality(quality(w))}）` : tWeapon(w.name)]),

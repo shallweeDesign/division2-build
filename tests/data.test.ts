@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { GEAR_SLOTS } from '../src/model/types.ts';
 import type { GameData } from '../src/model/types.ts';
 import { STAT_ZH } from '../src/i18n/stats.ts';
+import { dropOtherExotics, emptyBuild } from '../src/model/build.ts';
 
 const data: GameData = JSON.parse(readFileSync(new URL('../src/data/generated/game-data.json', import.meta.url), 'utf8'));
 const allItems = GEAR_SLOTS.flatMap((s) => data.gear[s]);
@@ -453,5 +454,30 @@ describe('sheet overrides', () => {
   it('resolves to null rather than throwing when the sheet is unreachable', async () => {
     expect(await loadOverrides('')).toBeNull();
     expect(await loadOverrides('https://invalid.invalid/nope.csv')).toBeNull();
+  });
+});
+
+describe('one exotic at a time', () => {
+  it('equipping an exotic weapon empties the other exotic weapon slot only', () => {
+    const exotics = data.weapons.filter((w) => w.isExotic && w.slotType === 'main');
+    const plain = data.weapons.find((w) => !w.isExotic && w.slotType === 'main')!;
+    const b = emptyBuild();
+    b.weapons.primary.weaponId = exotics[0]!.id;
+    b.weapons.secondary.weaponId = exotics[1]!.id;
+    b.weapons.sidearm.weaponId = plain.id;
+    expect(dropOtherExotics(b, data, { weapon: 'secondary' })).toEqual(['primary']);
+    expect(b.weapons.primary.weaponId).toBeNull();
+    expect(b.weapons.secondary.weaponId).toBe(exotics[1]!.id);
+    expect(b.weapons.sidearm.weaponId).toBe(plain.id);
+  });
+
+  it('equipping an exotic gear piece empties the other exotic piece', () => {
+    const b = emptyBuild();
+    b.gear.mask.itemId = data.gear.mask.find((i) => i.isExotic)!.id;
+    b.gear.chest.itemId = data.gear.chest.find((i) => i.isExotic)!.id;
+    b.gear.gloves.itemId = data.gear.gloves.find((i) => !i.isExotic)!.id;
+    expect(dropOtherExotics(b, data, { gear: 'chest' })).toEqual(['mask']);
+    expect(b.gear.mask.itemId).toBeNull();
+    expect(b.gear.gloves.itemId).not.toBeNull();
   });
 });

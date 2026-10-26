@@ -2,6 +2,7 @@
 import type { AttributeDef, AttributeSlotSpec, GameData, GearItem, GearSlot, Value } from '../model/types.ts';
 import { GEAR_LAYOUT } from '../model/types.ts';
 import type { SlotChoice } from '../model/build.ts';
+import { dropOtherExotics } from '../model/build.ts';
 import { attributeIndex, defaultChoice, defaultChoicesFor, eligible } from '../model/calc/index.ts';
 import { t, tCategory, tItem, tQuality, tSet, tSlot, tStat, tTalent, tTalentText } from '../i18n/index.ts';
 import { build, update } from './store.ts';
@@ -42,6 +43,7 @@ function itemPickers(data: GameData, attrs: Map<string, AttributeDef>, slot: Gea
     b.gear[slot] = i
       ? { itemId: i.id, ...defaultChoicesFor(i, data, attrs) }
       : { itemId: null, cores: [], minors: [], mods: [], talent: null };
+    if (i?.isExotic) for (const s of dropOtherExotics(b, data, { gear: slot })) delete picking[s];
   });
   const choose = (next: string | null) => {
     picking[slot] = next;

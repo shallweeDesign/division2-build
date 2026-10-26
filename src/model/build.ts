@@ -123,3 +123,35 @@ export function sanitizeBuild(
   }
   return out;
 }
+
+/**
+ * 奇特一次一件 / The game allows one exotic weapon and one exotic gear piece at
+ * a time. Equipping one empties whichever other slot of its kind held an
+ * exotic, the way the game swaps it out. Returns the slots it emptied.
+ */
+type ExoticData = { gear: Record<GearSlot, { id: string; isExotic: boolean }[]>; weapons: { id: string; isExotic: boolean }[] };
+export function dropOtherExotics(b: BuildState, data: ExoticData, kept: { gear: GearSlot }): GearSlot[];
+export function dropOtherExotics(b: BuildState, data: ExoticData, kept: { weapon: WeaponSlot }): WeaponSlot[];
+export function dropOtherExotics(
+  b: BuildState,
+  data: ExoticData,
+  kept: { gear: GearSlot } | { weapon: WeaponSlot },
+): (GearSlot | WeaponSlot)[] {
+  const emptied: (GearSlot | WeaponSlot)[] = [];
+  if ('gear' in kept) {
+    for (const slot of GEAR_SLOTS) {
+      const id = b.gear[slot].itemId;
+      if (slot === kept.gear || !id || !data.gear[slot].find((i) => i.id === id)?.isExotic) continue;
+      b.gear[slot] = emptySlot();
+      emptied.push(slot);
+    }
+  } else {
+    for (const slot of WEAPON_SLOTS) {
+      const id = b.weapons[slot].weaponId;
+      if (slot === kept.weapon || !id || !data.weapons.find((w) => w.id === id)?.isExotic) continue;
+      b.weapons[slot] = emptyWeapon();
+      emptied.push(slot);
+    }
+  }
+  return emptied;
+}
