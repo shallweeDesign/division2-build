@@ -32,11 +32,15 @@ const picking: Partial<Record<WeaponSlot, { type: string | null; family: string 
 
 const uniq = (xs: string[]) => [...new Set(xs)];
 
+/** 奇特武器自成一組 / Exotics sit in their own group after the models, as on the gear cards. */
+const EXOTIC = '__exotic__';
+const familyOf = (w: Weapon) => (w.isExotic ? EXOTIC : w.family);
+
 /** 種類 → 型號 → 名稱 / The three cascading selects at the top of a card. */
 function weaponPickers(data: GameData, attrs: Map<string, AttributeDef>, slot: WeaponSlot, weapon: Weapon | null) {
   const pool = data.weapons.filter((w) => fits(w, slot));
   const type = weapon?.weaponType ?? picking[slot]?.type ?? null;
-  const family = weapon?.family ?? picking[slot]?.family ?? null;
+  const family = (weapon && familyOf(weapon)) ?? picking[slot]?.family ?? null;
 
   const equip = (w: Weapon | null) => update('gear', (b) => {
     b.weapons[slot] = w
@@ -45,16 +49,19 @@ function weaponPickers(data: GameData, attrs: Map<string, AttributeDef>, slot: W
   });
   const choose = (next: { type: string | null; family: string | null }) => {
     picking[slot] = next;
-    const kin = pool.filter((w) => w.weaponType === next.type && w.family === next.family);
+    const kin = pool.filter((w) => w.weaponType === next.type && familyOf(w) === next.family);
     // A model with a single weapon has nothing left to choose.
     equip(kin.length === 1 ? kin[0]! : null);
   };
 
   const types = uniq(pool.map((w) => w.weaponType))
     .sort((a, b) => (TYPE_ORDER[a] ?? 99) - (TYPE_ORDER[b] ?? 99));
-  const families = type ? uniq(pool.filter((w) => w.weaponType === type).map((w) => w.family)).sort() : [];
+  const families = type
+    ? uniq(pool.filter((w) => w.weaponType === type).map(familyOf))
+      .sort((a, b) => Number(a === EXOTIC) - Number(b === EXOTIC) || a.localeCompare(b))
+    : [];
   const names = type && family
-    ? pool.filter((w) => w.weaponType === type && w.family === family)
+    ? pool.filter((w) => w.weaponType === type && familyOf(w) === family)
       .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
     : [];
 
@@ -64,10 +71,10 @@ function weaponPickers(data: GameData, attrs: Map<string, AttributeDef>, slot: W
   return [
     row('weaponKind', select(type, types.map((x) => [x, tWeaponType(x)]),
       (v) => choose({ type: v || null, family: null }), t('empty'))),
-    row('model', select(family, families.map((x) => [x, x]),
+    row('model', select(family, families.map((x) => [x, x === EXOTIC ? tQuality('exotic') : x]),
       (v) => choose({ type, family: v || null }), '—')),
     row('weaponName', select(weapon?.id ?? null,
-      names.map((w) => [w.id, rank(w) ? `${tWeapon(w.name)}（${tQuality(quality(w))}）` : tWeapon(w.name)]),
+      names.map((w) => [w.id, w.isNamed ? `${tWeapon(w.name)}（${tQuality(quality(w))}）` : tWeapon(w.name)]),
       (v) => equip(names.find((w) => w.id === v) ?? null), '—')),
   ];
 }

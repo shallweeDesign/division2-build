@@ -65,7 +65,7 @@ button.ghost {
 .layout {
   display: grid; gap: 1rem;
   grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-  @media (max-width: 900px) { grid-template-columns: 1fr; }
+  @media (max-width: 900px) { grid-template-columns: minmax(0, 1fr); }
 }
 
 .gear-col { display: grid; gap: .75rem; align-content: start; }
@@ -77,7 +77,7 @@ button.ghost {
 .weapon-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 @media (max-width: 780px) {
-  .gear-col:not(.weapon-col), .weapon-col { grid-template-columns: 1fr; }
+  .gear-col:not(.weapon-col), .weapon-col { grid-template-columns: minmax(0, 1fr); }
 }
 .build-col { display: grid; gap: 1rem; align-content: start; }
 
@@ -104,7 +104,7 @@ button.ghost {
 }
 
 .row {
-  display: grid; grid-template-columns: 5.5rem 1fr 5rem auto;
+  display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 5rem auto;
   align-items: center; gap: .4rem; margin-top: .35rem;
 
   // Left rule colours the row by attribute group, matching the in-game chips.
@@ -117,7 +117,7 @@ button.ghost {
 .row-label { font-size: .78rem; color: $muted; }
 .row-max { font-size: .7rem; color: $muted; }
 .fixed-stat { font-size: .82rem; color: $text; }
-.row-talent, .row-pick { grid-template-columns: 5.5rem 1fr; }
+.row-talent, .row-pick { grid-template-columns: 5.5rem minmax(0, 1fr); }
 
 // 天賦內容 / A talent's wording under its name, indented to the control column.
 .talent-text {
@@ -129,10 +129,10 @@ button.ghost {
 // value and its cap drop to a second line under the stat instead.
 .slot-card { container-type: inline-size; }
 @container (max-width: 340px) {
-  .row { grid-template-columns: 4.5rem 1fr auto; }
+  .row { grid-template-columns: 4.5rem minmax(0, 1fr) auto; }
   .row > :nth-child(2) { grid-column: 2 / -1; }
   .row > input { grid-column: 2; }
-  .row-talent, .row-pick { grid-template-columns: 4.5rem 1fr; }
+  .row-talent, .row-pick { grid-template-columns: 4.5rem minmax(0, 1fr); }
   .talent-text { margin-left: 4.9rem; }
 }
 
@@ -145,7 +145,8 @@ select, input[type="number"] {
 
 .summary-col { display: grid; gap: .75rem; align-content: start; }
 .watch-col { display: block; }
-.summary-inner, .damage-col { display: grid; gap: .75rem; }
+.summary-inner, .damage-col { display: grid; gap: .75rem; grid-template-columns: minmax(0, 1fr); }
+.table-scroll { overflow-x: auto; }
 
 // 專精 / Specialization tree, grouped by hub the way it reads in game.
 .spec {
@@ -231,10 +232,12 @@ select, input[type="number"] {
     text-transform: uppercase; color: $muted; font-weight: 500;
   }
 
-  .dps-row { display: grid; grid-template-columns: 4.6rem 1fr; gap: .5rem; align-items: center; }
+  .dps-row { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: .5rem; align-items: center; }
   .dps-row + .dps-row { margin-top: .35rem; }
+  // 手機 / On a phone the label goes above, leaving the full width for four figures.
+  @media (max-width: 480px) { .dps-row { grid-template-columns: minmax(0, 1fr); gap: .25rem; } }
   .dps-label { font-size: .76rem; color: $muted; }
-  .dps-figs { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; }
+  .dps-figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; }
 
   .dps-fig {
     background: $panel-2; border-radius: 3px; padding: .3rem .4rem;
