@@ -1,7 +1,7 @@
 /** 每日戰利品頁 / The daily loot page: today's rotation, read live. */
 import { lang, t } from '../i18n/index.ts';
 import { cacheTypeZh, lootZh, missionZh } from '../i18n/loot.ts';
-import { resolveLoot } from '../model/loot-vocab.ts';
+import { lootTone, resolveLoot } from '../model/loot-vocab.ts';
 import { LOOT_PAGE, isStale, loadLoot, localClock, localDate, nextReset } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
 import { el } from './dom.ts';
@@ -63,7 +63,7 @@ function lootItem(word: string, cls: string) {
     ]);
   }
   const title = lang() === 'zh-tw' ? lootZh(word) ?? word : word;
-  return detailButton(word, label, title, cls);
+  return detailButton(word, label, title, `${cls} ${lootTone(word)}`.trim());
 }
 
 function renderSnapshot(snap: LootSnapshot) {

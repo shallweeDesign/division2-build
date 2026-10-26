@@ -498,6 +498,8 @@ function main() {
   // 品牌／套裝名單 / Just the names, for the loot page: it has to recognise a
   // brand in the daily list without downloading the whole dataset first.
   writeFileSync(join(OUT, 'set-names.json'), JSON.stringify(sets.map((s) => s.name)));
+  // 套裝 / Which of those are gear sets, so the page can colour them apart from brands.
+  writeFileSync(join(OUT, 'gearset-names.json'), JSON.stringify(sets.filter((s) => s.kind === 'gearset').map((s) => s.name)));
 
   console.log(`✓ gear: ${GEAR_SLOTS.map((s) => `${s} ${data.gear[s].length}`).join(', ')}`);
   console.log(`✓ ${sets.filter((s) => s.kind === 'brand').length} brands, ${sets.filter((s) => s.kind === 'gearset').length} gear sets`);

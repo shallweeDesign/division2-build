@@ -13,7 +13,7 @@
  */
 import { lang, t } from '../i18n/index.ts';
 import { lootZh, missionZh } from '../i18n/loot.ts';
-import { looseKey } from '../model/loot-vocab.ts';
+import { lootTone, looseKey } from '../model/loot-vocab.ts';
 import { loadLoot, localClock, nextReset, rotationDate } from '../model/loot.ts';
 import type { LootSnapshot } from '../model/loot.ts';
 import { ALTARS, DISTRICTS, RED_MOON } from '../data/map/places.ts';
@@ -102,7 +102,7 @@ function popupContent(p: MapPlace) {
     el('span', { class: 'map-pop-district' }, [p.district]),
     p.where ? el('p', {}, [zh ? p.where.zh : p.where.en]) : null,
     p.kind === 'altar' ? altarPhotos(altarNo(p)) : null,
-    target ? el('p', { class: 'map-pop-loot' }, [t('mapTodayLoot'), ' ', el('b', {}, [lootName(target)])]) : null,
+    target ? el('p', { class: 'map-pop-loot' }, [t('mapTodayLoot'), ' ', el('b', { class: lootTone(target) }, [lootName(target)])]) : null,
     p.basedOn ? el('p', { class: 'map-pop-note' }, [fill(t('mapBasedOn'), { b: p.basedOn })]) : null,
     p.precision === 'approx' ? el('p', { class: 'map-pop-note' }, [t('mapApprox')]) : null,
     p.kind === 'altar'
@@ -266,7 +266,7 @@ function renderPanel(panel: HTMLElement) {
             place
               ? el('button', { type: 'button', class: 'linkish', onclick: () => flyTo(place.id) }, [missionZh(m.mission) ?? m.mission])
               : el('span', { title: t('mapNotOnMap') }, [missionZh(m.mission) ?? m.mission, el('small', {}, [` · ${t('mapNotOnMap')}`])]),
-            el('b', {}, [lootName(m.loot)]),
+            el('b', { class: lootTone(m.loot) }, [lootName(m.loot)]),
           ]);
         }))
         : el('p', { class: 'map-note' }, [t(loot ? 'mapLootNone' : 'detailLoading')]),

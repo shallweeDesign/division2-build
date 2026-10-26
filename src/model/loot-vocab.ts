@@ -19,6 +19,7 @@
  */
 import type { GearSlot } from './types.ts';
 import setNames from '../data/generated/set-names.json';
+import gearSetNames from '../data/generated/gearset-names.json';
 
 export type LootRef =
   | { kind: 'set'; name: string }
@@ -80,6 +81,10 @@ for (const [mod, words] of Object.entries(MOD_WORDS) as [ModKind, string[]][]) {
  * beside the dataset, so a new brand is recognised without a code change.
  */
 const sets = new Map((setNames as string[]).map((n) => [looseKey(n), n]));
+const gearSets = new Set(gearSetNames as string[]);
+
+/** 套裝或品牌 / Whether a set name is a gear set rather than a brand. */
+export const isGearSet = (name: string) => gearSets.has(name);
 
 /**
  * 別名 / Source word → a word this file already knows, from the sheet's
@@ -117,4 +122,10 @@ export function resolveLoot(word: string): LootRef {
     }
   }
   return direct(word);
+}
+
+/** 顏色類別 / The class that colours a loot word: gear sets green, brands yellow. */
+export function lootTone(word: string): '' | 'is-gearset' | 'is-brand' {
+  const ref = resolveLoot(word);
+  return ref.kind === 'set' ? (isGearSet(ref.name) ? 'is-gearset' : 'is-brand') : '';
 }

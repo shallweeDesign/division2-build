@@ -10,6 +10,8 @@ $offensive: #d64545;
 $defensive: #3f7fd6;
 $skill: #e0a02a;
 $warn: #e0a02a;
+$gearset: #4fc08d; // gear-set green, as in game
+$brand: #e8d44d;   // brand yellow, as in game
 
 :root { color-scheme: dark; }
 
@@ -338,7 +340,7 @@ select, input[type="number"] {
   font-size: .68rem; padding: .1rem .4rem; border-radius: 2px;
   border: 1px solid $line; color: $muted; white-space: nowrap;
   &.q-named { color: $skill; border-color: rgba($skill, .5); }
-  &.q-gearset { color: #4fc08d; border-color: rgba(#4fc08d, .5); }
+  &.q-gearset { color: $gearset; border-color: rgba($gearset, .5); }
   &.q-exotic { color: $accent; border-color: rgba($accent, .5); }
 }
 
@@ -384,7 +386,7 @@ select, input[type="number"] {
 .pill.focus-dps { color: $offensive; border-color: rgba($offensive, .5); }
 .pill.focus-tank { color: $defensive; border-color: rgba($defensive, .5); }
 .pill.focus-skill { color: $skill; border-color: rgba($skill, .5); }
-.pill.focus-support { color: #4fc08d; border-color: rgba(#4fc08d, .5); }
+.pill.focus-support { color: $gearset; border-color: rgba($gearset, .5); }
 
 // 每日戰利品 / Daily loot page.
 .loot { display: grid; gap: 1rem; max-width: 760px; }
@@ -450,7 +452,12 @@ select, input[type="number"] {
   &:hover, &:focus-visible { background: $panel-2; border-color: rgba($accent, .45); outline: none; }
   .loot-target-icon { color: $muted; font-size: 1.1rem; line-height: 1.2; }
   &:hover .loot-target-icon { color: $accent; }
+  &.is-gearset:hover, &.is-gearset:focus-visible { border-color: rgba($gearset, .45); }
+  &.is-brand:hover, &.is-brand:focus-visible { border-color: rgba($brand, .45); }
 }
+// 套裝綠、品牌黃 / Gear sets green, brands yellow, as the game colours them —
+// on the loot page and the map's loot list alike.
+.loot-target-btn, .map-loot-list b { &.is-gearset { color: $gearset; } &.is-brand { color: $brand; } }
 
 // 詳情視窗 / The loot detail popup.
 // On phones `100vh` is the height with the address bar hidden, so a centred
@@ -492,7 +499,7 @@ html.scroll-locked, html.scroll-locked body { overflow: hidden; overscroll-behav
 .d-section .col-heading { margin: 0 0 .5rem; }
 
 .pill.brand { color: $accent; border-color: rgba($accent, .5); }
-.pill.gearset { color: #4fc08d; border-color: rgba(#4fc08d, .5); }
+.pill.gearset { color: $gearset; border-color: rgba($gearset, .5); }
 
 // 屬性類別色 / Red, blue and yellow as in game; uncategorised stays neutral.
 .cat-offensive { --cat: #{$offensive}; }
@@ -850,6 +857,9 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   .map-pop-kind.kind-altar { color: #b02424; }
   .map-pop-district { color: #666; font-size: .76rem; }
   .map-pop-loot b { color: #c2410c; }
+  // The popup is light, so the same green and yellow, darkened to stay legible.
+  .map-pop-loot b.is-gearset { color: #1f7a4f; }
+  .map-pop-loot b.is-brand { color: #8a6d00; }
   .map-pop-note { color: #777; font-size: .74rem; }
   .map-pop-shots {
     display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: .15rem 0;
