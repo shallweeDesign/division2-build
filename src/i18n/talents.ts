@@ -256,11 +256,46 @@ const GEAR: Record<string, string> = {
 };
 
 /**
+ * 套裝天賦 / Gear-set talents: the four-piece talent, then the chest's and the
+ * backpack's. From the owner's in-game screenshots (2026-10-27). Point of no
+ * Return is shown in English there, so it stays English. Aces & Eights and Tip
+ * of the Spear had no screenshot.
+ */
+const GEAR_SET: Record<string, string> = {
+  'Spontaneous Combustion': '自燃', Flashpoint: '燃點', 'White Hot': '熾熱高溫',
+  'Ortiz Rapid Application Nanite Prototype': '奧提茲迅速施用奈米機器原型', 'Overcharged Nanites': '過載奈米機器', 'Improved Dampeners': '改良阻尼器',
+  'Core Exercise': '核心訓練', 'Inner Core': '內核心', 'Outer Core': '外核心',
+  Camaraderie: '國土同胞', 'All for One': '人人為我', 'One for All': '我為人人',
+  'Throttle Control': '節流控制', Sustainability: '續航力', Snowball: '失控',
+  Huddle: '群聚增效', Hivemind: '集體意識', 'Smart Cooperation': '智慧合作',
+  'Return to Sender': '悉數奉還', 'Increased Interest': '興趣漸深', 'Over-engineered': '超量修復',
+  Symphony: '交響曲', Fortissimo: '極強', Accelerando: '漸快',
+  'On Point': '卓越連狙', 'Point of Honor': '連狙榮耀',
+  Stoic: '堅忍', Deceit: '欺瞞', 'Polyethylene Plating': '聚乙烯鍍層',
+  'Ortiz Incinerator Turret Prototype': '奧提茲焚燒機槍塔原型', 'Chain Combustion': '連鎖燃燒', Heatstroke: '熱中暑',
+  Charging: '充能', Overcharging: '超載充能', 'Safe Charging': '安全充能',
+  Headache: '迎頭痛擊', 'Stand Tall': '大膽無畏', Lucky: '備受祝福',
+  'From the Shadows Into the Light': '由陰影至光明', 'From the Shadows': '由陰影', 'Into the Light': '至光明',
+  Heartstopper: '止心者', 'Max BPM': '最大心率', Cold: '寒冷',
+  'Tend and Befriend': '互助照護', 'Best Buds': '最佳拍檔', 'Complete Uptime': '完整上線',
+  'Apex Predator': '頂尖掠奪者', 'Endless Hunger': '無窮渴望', 'Overwhelming Force': '壓倒性攻勢',
+  'Indirect Transmission': '間接傳播', Proliferation: '大幅擴散', 'Symptom Aggravator': '症狀惡化',
+  'Ground Control': '地面控制', 'Tactical Superiority': '戰術優勢', 'Advanced Combat Tactics': '戰略戰鬥支援',
+  'Makeshift Repairs': '臨場修復', 'Improved Materials': '改良材料', 'Process Refinery': '精煉過程',
+  'Hackstep Protocol': '駭步協定', 'Compiler Optimization': '編譯器最佳化', 'Multithreaded Execution': '多線程執行',
+  "Striker's Gamble": '突襲者賭注', 'Press the Advantage': '強化優勢', 'Risk Management': '風險管理',
+  'Rules of Engagement': '交戰規則', 'Parabellum Rounds': '備戰子彈', 'Trauma Specialist': '創傷專家',
+  'Red, White and Blue': '紅、白及藍', 'Waving the Flag': '旗幟飄揚', 'Patriotic Boost': '愛國強化',
+  'Feedback Loop': '回饋迴路', 'Positive Reinforcement': '正向增強', 'Short Circuit': '短路',
+  'Crowd Control': '敵對談判', 'Target Rich Environment': '目標充足環境', 'Critical Measures': '緊急措施',
+};
+
+/**
  * `Perfect X` 是 X 的強化版，共用譯名 / Named and exotic gear carries "Perfect"
  * variants of ordinary talents — the same talent with the source's parenthesised
  * values. The Chinese name is derived rather than listed twice.
  */
-export const TALENT_ZH: Record<string, string> = { ...GEAR, ...WEAPON, ...EXOTIC, ...EXOTIC_GEAR };
+export const TALENT_ZH: Record<string, string> = { ...GEAR, ...GEAR_SET, ...WEAPON, ...EXOTIC, ...EXOTIC_GEAR };
 
 /**
  * 天賦內容中譯 / Chinese wording for talent descriptions, keyed by the exact

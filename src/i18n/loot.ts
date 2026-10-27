@@ -16,7 +16,26 @@ import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
 import { looseKey, resolveLoot } from '../model/loot-vocab.ts';
 import type { ModKind } from '../model/loot-vocab.ts';
 
-export const MISSION_ZH: Record<string, string> = {};
+export const MISSION_ZH: Record<string, string> = {
+  // From the owner's screenshot of where Hard Wired pieces drop (2026-10-27).
+  'Grand Washington Hotel': '華盛頓大飯店',
+  'Jefferson Trade Center': '傑佛遜貿易中心',
+  'Air & Space Museum': '航空及太空博物館',
+  'Federal Emergency Bunker': '聯邦急難地下碉堡',
+  'Lincoln Memorial': '林肯紀念堂',
+  'Bank Headquarters': '銀行總部',
+  // From a list the owner pasted (2026-10-27); where it words one of the six
+  // above differently, the screenshot's wording stays.
+  'ViewPoint Museum': '觀點博物館',
+  'American History Museum': '美國歷史博物館',
+  'Jefferson Plaza': '傑佛遜廣場',
+  'Space Administration HQ': '航天局總部',
+  'Potomac Event Center': '波托馬克活動中心',
+  'DCD Headquarters': '疾管局總部',
+  'Capitol Building': '國會大廈',
+  'Manning National Zoo': '曼寧國家動物園',
+  'The Pentagon': '五角大樓',
+};
 
 /** 補給箱類別 / Vendor cache categories, as the source words them. */
 export const CACHE_TYPE_ZH: Record<string, string> = {
