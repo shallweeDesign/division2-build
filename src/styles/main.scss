@@ -956,7 +956,7 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   max-width: none; gap: 1rem; align-items: start;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.talents-cat { display: grid; gap: 1rem; }
+.talents-cat, .talents-cat-row { display: grid; gap: 1rem; }
 // The search hides by `hidden`; a display rule here would otherwise win over it.
 .talents [hidden], .talents-tray[hidden] { display: none; }
 .talents-cat-title {
@@ -984,11 +984,12 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 .is-all .talent-group .talent-head { flex-direction: column; align-items: flex-start; gap: .1rem; }
 .is-all .talent-group .talent-source { text-align: left; }
 
-// 已選欄 / The tray stays under the title bar while the page scrolls.
+// 已選欄 / The tray comes last on the page and sticks to the bottom of the
+// window, so the lists scroll above it.
 .talents-tray {
-  position: sticky; top: 0; z-index: 20; margin: 0 0 .75rem;
+  position: sticky; bottom: 0; z-index: 20; margin: .75rem 0 0;
   background: $panel; border: 1px solid $accent; border-radius: 4px; padding: .5rem .75rem;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, .45);
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, .45);
 
   .tray-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
   .tray-head strong { color: $accent; font-size: .9rem; }
@@ -1017,10 +1018,18 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   }
 }
 
+// 手機 / Narrow screens: the three categories stack top to bottom, each a row
+// of groups swiped sideways, and each group's list scrolls inside a set height.
 @media (max-width: 1000px) {
-  .talents-body.is-all { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
-  .is-all .talent-group .talent-head { flex-direction: row; align-items: baseline; }
-  .is-all .talent-group .talent-source { text-align: right; }
+  .talents-body.is-all { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  .talents-cat { gap: .6rem; }
+  .talents-cat-row {
+    display: flex; align-items: flex-start; gap: .75rem;
+    overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+    padding-bottom: .4rem; -webkit-overflow-scrolling: touch;
+    > .talent-group { flex: 0 0 min(85%, 360px); scroll-snap-align: start; }
+    .talent-list { max-height: 40vh; overflow-y: auto; overscroll-behavior-y: contain; }
+  }
 }
 @media (max-width: 480px) {
   .talents-search { max-width: none; }

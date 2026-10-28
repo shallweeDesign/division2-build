@@ -6,8 +6,8 @@
  * fixed on a named or exotic item (or with a gear set). A search box filters
  * the current tab by name, item or wording, in either language.
  *
- * Any talent can be picked; picks stay pinned in a tray under the title bar
- * while the lists scroll, and are remembered in this browser.
+ * Any talent can be picked; picks stay pinned in a tray at the bottom of the
+ * window while the lists scroll, and are remembered in this browser.
  */
 import type { GameData, GearItem, SpecializationId, Weapon } from '../model/types.ts';
 import { GEAR_LAYOUT } from '../model/types.ts';
@@ -260,7 +260,8 @@ export function renderTalentsPanel(root: HTMLElement, tray: HTMLElement, data: G
     active.id === ''
       ? CATEGORIES.map((c) => el('div', { class: 'talents-cat' }, [
           el('h2', { class: 'talents-cat-title' }, [c.label()]),
-          ...built.get(c.id)!,
+          // 一列 / On a phone each category is one row, swiped sideways.
+          el('div', { class: 'talents-cat-row' }, built.get(c.id)!),
         ]))
       : built.get(active.id)!);
   const search = el('input', {

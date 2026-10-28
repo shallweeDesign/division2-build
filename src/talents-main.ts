@@ -17,9 +17,9 @@ const app = document.getElementById('app')!;
 const header = el('header', { class: 'app-header' });
 const banner = el('p', { class: 'data-banner' });
 const root = el('div', { class: 'talents' });
-// 已選天賦 / Picked talents, pinned under the title bar while the lists scroll.
+// 已選天賦 / Picked talents, pinned to the bottom of the window while the lists scroll.
 const tray = el('aside', { class: 'talents-tray', 'aria-live': 'polite' });
-app.append(header, tray, banner, root);
+app.append(header, banner, root, tray);
 
 function renderAll() {
   renderHeader(header, 'talents', [
