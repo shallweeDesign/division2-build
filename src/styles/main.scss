@@ -942,19 +942,23 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 }
 .saved-where { margin: .5rem 0 0; font-size: .76rem; }
 
-// 天賦一覽 / Talents page: sub-tabs and search on one bar, then groups of cards.
-.talents { display: grid; gap: 1rem; max-width: 980px; }
+// 天賦一覽 / Talents page: sub-tabs and search on one bar, then the lists — in
+// the All tab one column per category — with picks pinned in a tray on top.
+.talents { display: grid; gap: 1rem; }
 .talents-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; }
 .talents-search {
   flex: 1 1 16rem; max-width: 22rem; padding: .4rem .6rem;
   background: $panel-2; color: $text; border: 1px solid $line; border-radius: 3px; font: inherit;
   &:focus { outline: none; border-color: $accent; }
 }
-.talents-body { display: grid; gap: 1rem; }
+.talents-body { display: grid; gap: 1rem; max-width: 980px; }
+.talents-body.is-all {
+  max-width: none; gap: 1rem; align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .talents-cat { display: grid; gap: 1rem; }
 // The search hides by `hidden`; a display rule here would otherwise win over it.
-.talents [hidden] { display: none; }
-.talents-body:has(> .talents-cat) { gap: 2rem; }
+.talents [hidden], .talents-tray[hidden] { display: none; }
 .talents-cat-title {
   margin: 0; padding-bottom: .35rem; border-bottom: 1px solid $accent;
   font-size: 1.05rem; color: $accent; letter-spacing: .06em;
@@ -965,9 +969,62 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   .muted { margin-bottom: .6rem; }
   .talent-head strong small { margin-left: .4rem; color: $muted; font-size: .76rem; font-weight: 400; }
   .talent-desc { white-space: pre-line; }
+
+  // 可選 / Every card is a toggle.
+  .talent-list > li {
+    cursor: pointer; border-radius: 0 3px 3px 0; padding: .3rem .5rem .35rem .6rem;
+    border-left-color: $line;
+    &:hover { background: rgba($accent, .05); border-left-color: rgba($accent, .6); }
+    &:focus-visible { outline: 1px solid $accent; outline-offset: 1px; }
+    &.is-picked { background: rgba($accent, .12); border-left-color: $accent; }
+    &.is-picked .talent-head strong::before { content: '✓ '; color: $accent; }
+  }
+}
+// 三欄 / A third of the width: the source drops under the name.
+.is-all .talent-group .talent-head { flex-direction: column; align-items: flex-start; gap: .1rem; }
+.is-all .talent-group .talent-source { text-align: left; }
+
+// 已選欄 / The tray stays under the title bar while the page scrolls.
+.talents-tray {
+  position: sticky; top: 0; z-index: 20; margin: 0 0 .75rem;
+  background: $panel; border: 1px solid $accent; border-radius: 4px; padding: .5rem .75rem;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .45);
+
+  .tray-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .tray-head strong { color: $accent; font-size: .9rem; }
+  .tray-actions { display: flex; gap: .4rem; }
+  .tray-actions .ghost { padding: .2rem .6rem; font-size: .8rem; }
+
+  .tray-list {
+    list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .5rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    max-height: 34vh; overflow-y: auto;
+  }
+  .tray-list li { background: $panel-2; border-left: 2px solid $accent; padding: .35rem .5rem; display: grid; gap: .15rem; align-content: start; }
+  .talent-head { display: flex; align-items: baseline; justify-content: space-between; gap: .4rem; }
+  .talent-head strong small { margin-left: .35rem; color: $muted; font-size: .74rem; font-weight: 400; }
+  .talent-source { color: $muted; font-size: .74rem; }
+  .talent-desc { margin: 0; font-size: .8rem; line-height: 1.45; white-space: pre-line; }
+  .tray-remove {
+    background: none; border: 0; color: $muted; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 .15rem;
+    &:hover { color: $accent; }
+  }
+  .tray-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .45rem; }
+  .tray-chip {
+    background: rgba($accent, .1); color: $text; border: 1px solid rgba($accent, .5); border-radius: 3px;
+    padding: .15rem .5rem; font: inherit; font-size: .8rem; cursor: pointer;
+    &:hover { border-color: $accent; color: $accent; }
+  }
+}
+
+@media (max-width: 1000px) {
+  .talents-body.is-all { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .is-all .talent-group .talent-head { flex-direction: row; align-items: baseline; }
+  .is-all .talent-group .talent-source { text-align: right; }
 }
 @media (max-width: 480px) {
   .talents-search { max-width: none; }
-  .talent-group .talent-head { flex-direction: column; align-items: flex-start; gap: .1rem; }
-  .talent-group .talent-source { text-align: left; }
+  .talent-group .talent-head, .is-all .talent-group .talent-head { flex-direction: column; align-items: flex-start; gap: .1rem; }
+  .talent-group .talent-source, .is-all .talent-group .talent-source { text-align: left; }
+  .talents-tray .tray-list { max-height: 28vh; grid-template-columns: minmax(0, 1fr); }
 }

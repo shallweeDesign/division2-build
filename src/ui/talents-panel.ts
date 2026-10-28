@@ -6,6 +6,8 @@
  * fixed on a named or exotic item (or with a gear set). A search box filters
  * the current tab by name, item or wording, in either language.
  *
+ * Any talent can be picked; picks stay pinned in a tray under the title bar
+ * while the lists scroll, and are remembered in this browser.
  */
 import type { GameData, GearItem, SpecializationId, Weapon } from '../model/types.ts';
 import { GEAR_LAYOUT } from '../model/types.ts';
@@ -21,28 +23,70 @@ const slugLabel = (s: string) =>
   SLUG_TYPE[s] ? tWeaponType(SLUG_TYPE[s]!) : (GEAR_LAYOUT as readonly string[]).includes(s) ? tSlot(s as 'chest') : s;
 
 interface Entry {
+  /** Unique across the page: kind, then name (and spec for spec nodes). */
+  id: string;
   name: string;
   /** Already in the active language. */
   title: string;
   /** The English name under a Chinese one; empty in English. */
   sub: string;
   source: string;
+  /** Where it belongs, for the tray, where the group heading is not in view. */
+  ctx: string;
   text: string;
 }
 
-function talentEntry(name: string, en: string | undefined, source: string): Entry {
+function talentEntry(kind: 'w' | 'g', name: string, en: string | undefined, source: string): Entry {
   const title = tTalent(name);
-  return { name, title, sub: title === name ? '' : name, source, text: en ? tTalentText(name, en) : t('noTalentText') };
+  return {
+    id: `${kind}:${name}`, name, title, sub: title === name ? '' : name, source,
+    ctx: kind === 'w' ? t('weapons') : t('talentsGearTab'),
+    text: en ? tTalentText(name, en) : t('noTalentText'),
+  };
+}
+
+// 已選 / Picked talent ids, kept in this browser only. Storage can be missing
+// (private windows, blocked site data), so every access is guarded.
+const PICK_KEY = 'd2-talents-picked';
+let picked: string[] = (() => {
+  try { return JSON.parse(localStorage.getItem(PICK_KEY) ?? '[]') as string[]; } catch { return []; }
+})();
+let trayOpen = true;
+function savePicked() {
+  try { localStorage.setItem(PICK_KEY, JSON.stringify(picked)); } catch { /* not kept */ }
+}
+
+/** Every entry built for this render, by id, so the tray can show any of them. */
+const index = new Map<string, Entry>();
+let onPick: () => void = () => {};
+
+function togglePick(id: string) {
+  picked = picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id];
+  savePicked();
+  onPick();
 }
 
 function card(e: Entry) {
-  const li = el('li', {}, [
+  index.set(e.id, e);
+  const on = picked.includes(e.id);
+  const li = el('li', {
+    class: on ? 'is-picked' : '',
+    tabindex: 0,
+    role: 'button',
+    'aria-pressed': on ? 'true' : 'false',
+    onclick: () => togglePick(e.id),
+    onkeydown: (ev) => {
+      const k = (ev as KeyboardEvent).key;
+      if (k === 'Enter' || k === ' ') { ev.preventDefault(); togglePick(e.id); }
+    },
+  }, [
     el('div', { class: 'talent-head' }, [
       el('strong', {}, [e.title, e.sub ? el('small', {}, [e.sub]) : null]),
       e.source ? el('span', { class: 'talent-source' }, [e.source]) : null,
     ]),
     el('p', { class: 'talent-desc' }, [e.text]),
   ]);
+  li.dataset.id = e.id;
   li.dataset.search = [e.name, e.title, e.source, e.text].join(' ').toLowerCase();
   return li;
 }
@@ -60,7 +104,7 @@ const sortByTitle = (a: Entry, b: Entry) => a.title.localeCompare(b.title, lang(
 
 /** 固定天賦 / Talents fixed on items, each listing the items that carry it. */
 function fixedOn<T extends { name: string; talent: Weapon['talent'] | GearItem['talent'] }>(
-  items: T[], label: (i: T) => string, describe: (n: string) => string | undefined,
+  kind: 'w' | 'g', items: T[], label: (i: T) => string, describe: (n: string) => string | undefined,
 ) {
   const by = new Map<string, string[]>();
   for (const i of items) {
@@ -69,19 +113,19 @@ function fixedOn<T extends { name: string; talent: Weapon['talent'] | GearItem['
     list.push(label(i));
     by.set(i.talent.name, list);
   }
-  return [...by].map(([n, on]) => talentEntry(n, describe(n), [...new Set(on)].join('、'))).sort(sortByTitle);
+  return [...by].map(([n, on]) => talentEntry(kind, n, describe(n), [...new Set(on)].join('、'))).sort(sortByTitle);
 }
 
 function weaponTab(data: GameData) {
   const text = (n: string) => data.weaponTalents.find((x) => x.name === n)?.description;
   const pickable = data.weaponTalents
     .filter((x) => x.compatibility.length)
-    .map((x) => talentEntry(x.name, x.description, x.compatibility.length === 7 ? t('talentsAllWeapons') : x.compatibility.map(slugLabel).join('、')))
+    .map((x) => talentEntry('w', x.name, x.description, x.compatibility.length === 7 ? t('talentsAllWeapons') : x.compatibility.map(slugLabel).join('、')))
     .sort(sortByTitle);
   return [
     group(t('talentsPickable'), pickable),
-    group(t('talentsNamedWeapons'), fixedOn(data.weapons.filter((w) => w.isNamed && !w.isExotic), (w) => tWeapon(w.name), text)),
-    group(t('talentsExoticWeapons'), fixedOn(data.weapons.filter((w) => w.isExotic), (w) => tWeapon(w.name), text)),
+    group(t('talentsNamedWeapons'), fixedOn('w', data.weapons.filter((w) => w.isNamed && !w.isExotic), (w) => tWeapon(w.name), text)),
+    group(t('talentsExoticWeapons'), fixedOn('w', data.weapons.filter((w) => w.isExotic), (w) => tWeapon(w.name), text)),
   ];
 }
 
@@ -90,7 +134,7 @@ function gearTab(data: GameData) {
   const all = GEAR_LAYOUT.flatMap((slot) => data.gear[slot]);
   const pickable = data.gearTalents
     .filter((x) => x.compatibility.length)
-    .map((x) => talentEntry(x.name, x.description, x.compatibility.map(slugLabel).join('、')))
+    .map((x) => talentEntry('g', x.name, x.description, x.compatibility.map(slugLabel).join('、')))
     .sort(sortByTitle);
 
   // 套裝 / Each gear set's four-piece talent, then the chest's and backpack's.
@@ -98,10 +142,10 @@ function gearTab(data: GameData) {
     const four = s.tiers.flatMap((tier) => tier.entries).find((e) => e.kind === 'talent');
     const pieceTalent = (slot: 'chest' | 'backpack') => {
       const i = data.gear[slot].find((g) => g.gearSet === s.name && g.talent?.mode === 'fixed');
-      return i?.talent?.mode === 'fixed' ? talentEntry(i.talent.name, text(i.talent.name), `${tSet(s.name)} · ${tSlot(slot)}`) : null;
+      return i?.talent?.mode === 'fixed' ? talentEntry('g', i.talent.name, text(i.talent.name), `${tSet(s.name)} · ${tSlot(slot)}`) : null;
     };
     return [
-      four?.kind === 'talent' ? talentEntry(four.name, text(four.name), `${tSet(s.name)} · ${t('talentsFourPiece')}`) : null,
+      four?.kind === 'talent' ? talentEntry('g', four.name, text(four.name), `${tSet(s.name)} · ${t('talentsFourPiece')}`) : null,
       pieceTalent('chest'),
       pieceTalent('backpack'),
     ].filter((e): e is Entry => e !== null);
@@ -111,8 +155,8 @@ function gearTab(data: GameData) {
   return [
     group(t('talentsPickableGear'), pickable),
     group(t('talentsGearSets'), sets),
-    group(t('talentsNamedGear'), fixedOn(all.filter((g) => g.isNamed && !g.isExotic), item, text)),
-    group(t('talentsExoticGear'), fixedOn(all.filter((g) => g.isExotic), item, text)),
+    group(t('talentsNamedGear'), fixedOn('g', all.filter((g) => g.isNamed && !g.isExotic), item, text)),
+    group(t('talentsExoticGear'), fixedOn('g', all.filter((g) => g.isExotic), item, text)),
   ];
 }
 
@@ -131,7 +175,11 @@ function specTab(data: GameData) {
           ? tiers.map((x) => `${x.name.match(/Tier (\d+)$/)?.[1] ?? ''}. ${tSpecText(x.description)}`).join('\n')
           : tiers[0] ? tSpecText(tiers[0].description) : t('noTalentText');
         const title = tSpecNode(n.name, id);
-        return { name: n.name, title, sub: title === n.name ? '' : n.name, source: tiers.length > 1 ? fill(t('talentsTiers'), { n: String(tiers.length) }) : '', text };
+        return {
+          id: `s:${id}:${n.name}`, name: n.name, title, sub: title === n.name ? '' : n.name,
+          source: tiers.length > 1 ? fill(t('talentsTiers'), { n: String(tiers.length) }) : '',
+          ctx: `${t('specialization')} · ${tSpec(id)}`, text,
+        };
       });
     return group(tSpec(id), entries);
   });
@@ -145,15 +193,8 @@ const CATEGORIES = [
   { id: 'spec', label: () => t('specialization'), render: specTab },
 ];
 
-/** 全部 / All three at once, each under its own heading, so one search spans them. */
-function allTab(data: GameData) {
-  return CATEGORIES.map((c) => el('div', { class: 'talents-cat' }, [
-    el('h2', { class: 'talents-cat-title' }, [c.label()]),
-    ...c.render(data),
-  ]));
-}
-
-const TABS = [{ id: '', label: () => t('talentsAll'), render: allTab }, ...CATEGORIES];
+// 全部 / All three at once, a column each, so one search spans them.
+const TABS = [{ id: '', label: () => t('talentsAll') }, ...CATEGORIES];
 
 const current = () => TABS.find((tab) => tab.id === location.hash.slice(1)) ?? TABS[0]!;
 
@@ -176,13 +217,64 @@ function applyFilter(body: HTMLElement) {
   }
 }
 
-export function renderTalentsPanel(root: HTMLElement, data: GameData) {
+/** 已選欄 / The pinned tray: picked talents in the order they were picked. */
+function renderTray(tray: HTMLElement) {
+  const entries = picked.map((id) => index.get(id)).filter((e): e is Entry => e !== undefined);
+  tray.hidden = entries.length === 0;
+  if (!entries.length) { tray.replaceChildren(); return; }
+  tray.classList.toggle('is-closed', !trayOpen);
+  tray.replaceChildren(
+    el('div', { class: 'tray-head' }, [
+      el('strong', {}, [fill(t('talentsPicked'), { n: String(entries.length) })]),
+      el('div', { class: 'tray-actions' }, [
+        el('button', { class: 'ghost', onclick: () => { trayOpen = !trayOpen; renderTray(tray); } },
+          [trayOpen ? t('talentsCollapse') : t('talentsExpand')]),
+        el('button', { class: 'ghost', onclick: () => { picked = []; savePicked(); onPick(); } }, [t('talentsClear')]),
+      ]),
+    ]),
+    trayOpen
+      ? el('ul', { class: 'tray-list' }, entries.map((e) => el('li', {}, [
+          el('div', { class: 'talent-head' }, [
+            el('strong', {}, [e.title, e.sub ? el('small', {}, [e.sub]) : null]),
+            el('button', {
+              class: 'tray-remove', 'aria-label': fill(t('talentsRemove'), { name: e.title }),
+              onclick: () => togglePick(e.id),
+            }, ['×']),
+          ]),
+          el('span', { class: 'talent-source' }, [[e.ctx, e.source].filter(Boolean).join(' · ')]),
+          el('p', { class: 'talent-desc' }, [e.text]),
+        ])))
+      : el('div', { class: 'tray-chips' }, entries.map((e) =>
+          el('button', { class: 'tray-chip', onclick: () => togglePick(e.id), 'aria-label': fill(t('talentsRemove'), { name: e.title }) },
+            [e.title, ' ×']))),
+  );
+}
+
+export function renderTalentsPanel(root: HTMLElement, tray: HTMLElement, data: GameData) {
   const active = current();
-  const body = el('div', { class: 'talents-body' }, active.render(data));
+  index.clear();
+  // Every category is built so the tray can show picks from any of them; only
+  // the active tab's are placed on the page.
+  const built = new Map(CATEGORIES.map((c) => [c.id, c.render(data)]));
+  const body = el('div', { class: `talents-body${active.id === '' ? ' is-all' : ''}` },
+    active.id === ''
+      ? CATEGORIES.map((c) => el('div', { class: 'talents-cat' }, [
+          el('h2', { class: 'talents-cat-title' }, [c.label()]),
+          ...built.get(c.id)!,
+        ]))
+      : built.get(active.id)!);
   const search = el('input', {
     type: 'search', class: 'talents-search', value: query, placeholder: t('talentsSearch'),
     oninput: (e) => { query = (e.target as HTMLInputElement).value; applyFilter(body); },
   });
+  onPick = () => {
+    for (const li of body.querySelectorAll<HTMLElement>('.talent-list > li')) {
+      const on = picked.includes(li.dataset.id!);
+      li.classList.toggle('is-picked', on);
+      li.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    renderTray(tray);
+  };
   root.replaceChildren(
     el('div', { class: 'talents-bar' }, [
       el('nav', { class: 'subtabs', 'aria-label': t('navTalents') }, TABS.map((tab) => el('a', {
@@ -195,4 +287,5 @@ export function renderTalentsPanel(root: HTMLElement, data: GameData) {
     body,
   );
   applyFilter(body);
+  renderTray(tray);
 }

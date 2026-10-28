@@ -17,7 +17,9 @@ const app = document.getElementById('app')!;
 const header = el('header', { class: 'app-header' });
 const banner = el('p', { class: 'data-banner' });
 const root = el('div', { class: 'talents' });
-app.append(header, banner, root);
+// 已選天賦 / Picked talents, pinned under the title bar while the lists scroll.
+const tray = el('aside', { class: 'talents-tray', 'aria-live': 'polite' });
+app.append(header, tray, banner, root);
 
 function renderAll() {
   renderHeader(header, 'talents', [
@@ -28,10 +30,10 @@ function renderAll() {
   ]);
   banner.replaceChildren(el('span', {}, [t('dataBanner')]));
   document.title = `${t('navTalents')} · ${t('title')}`;
-  renderTalentsPanel(root, data);
+  renderTalentsPanel(root, tray, data);
 }
 
-window.addEventListener('hashchange', () => { renderTalentsPanel(root, data); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', () => { renderTalentsPanel(root, tray, data); window.scrollTo(0, 0); });
 
 setLang(lang() as Lang);
 renderAll();
