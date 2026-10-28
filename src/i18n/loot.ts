@@ -35,6 +35,9 @@ export const MISSION_ZH: Record<string, string> = {
   'Capitol Building': '國會大廈',
   'Manning National Zoo': '曼寧國家動物園',
   'The Pentagon': '五角大樓',
+  'District Union Arena': '區域聯盟體育館',
+  'Roosevelt Island': '羅斯福島',
+  'Tidal Basin': '潮汐盆地',
 };
 
 /** 補給箱類別 / Vendor cache categories, as the source words them. */

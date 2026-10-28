@@ -58,8 +58,9 @@ function tab(file: string, header: string[], rows: string[][], keyCol: number, z
     // `&""` keeps a blank owner blank; a bare `=F5` would show and publish 0.
     for (const c of zhCols) r[c] = `=${letter(c)}${owner}&""`;
   });
-  // Tabs and newlines inside a cell would break the paste.
-  const clean = (s: string) => s.replace(/[\t\r\n]+/g, ' ');
+  // Tabs and newlines inside a cell would break the paste, and a leading + or -
+  // would be read as a formula (#ERROR!); an apostrophe keeps it plain text.
+  const clean = (s: string) => s.replace(/[\t\r\n]+/g, ' ').replace(/^[+-]/, "'$&");
   writeFileSync(file, [header, ...rows].map((r) => r.map(clean).join('\t')).join('\n') + '\n', 'utf8');
   console.log(`✓ ${file} — ${rows.length} rows`);
 }

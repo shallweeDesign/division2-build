@@ -40,7 +40,7 @@ body {
   display: flex; gap: .25rem; margin-right: auto;
 
   .tab {
-    color: $muted; text-decoration: none; padding: .35rem .75rem;
+    color: $muted; text-decoration: none; padding: .35rem .75rem; white-space: nowrap;
     border-bottom: 2px solid transparent; letter-spacing: .04em;
     &:hover { color: $text; }
     &.active { color: $accent; border-bottom-color: $accent; }
@@ -49,7 +49,9 @@ body {
 
 @media (max-width: 600px) {
   .app-header { flex-wrap: wrap; }
-  .tabs { order: 3; width: 100%; margin-right: 0; }
+  // Five tabs outgrow a phone; scroll them rather than break a label in two.
+  .tabs { order: 3; width: 100%; margin-right: 0; overflow-x: auto; scrollbar-width: none; }
+  .tabs .tab { padding: .35rem .55rem; }
 }
 
 button.ghost {
@@ -939,3 +941,25 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   .saved-delete.confirming { color: $offensive; border-color: $offensive; }
 }
 .saved-where { margin: .5rem 0 0; font-size: .76rem; }
+
+// 天賦一覽 / Talents page: sub-tabs and search on one bar, then groups of cards.
+.talents { display: grid; gap: 1rem; max-width: 980px; }
+.talents-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; }
+.talents-search {
+  flex: 1 1 16rem; max-width: 22rem; padding: .4rem .6rem;
+  background: $panel-2; color: $text; border: 1px solid $line; border-radius: 3px; font: inherit;
+  &:focus { outline: none; border-color: $accent; }
+}
+.talents-body { display: grid; gap: 1rem; }
+.talent-group {
+  .col-heading { display: flex; align-items: baseline; gap: .5rem; }
+  .talent-count { color: $muted; font-size: .78rem; font-weight: 400; }
+  .muted { margin-bottom: .6rem; }
+  .talent-head strong small { margin-left: .4rem; color: $muted; font-size: .76rem; font-weight: 400; }
+  .talent-desc { white-space: pre-line; }
+}
+@media (max-width: 480px) {
+  .talents-search { max-width: none; }
+  .talent-group .talent-head { flex-direction: column; align-items: flex-start; gap: .1rem; }
+  .talent-group .talent-source { text-align: left; }
+}

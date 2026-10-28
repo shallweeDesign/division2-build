@@ -81,30 +81,31 @@ const WEAPON: Record<string, string> = {
   'Unhinged': '精神錯亂',
   'Unwavering': '屹立不搖',
   'Vindictive': '報復之心',
-  // 自譯 / Translated here from the English (2026-10-26): no in-game or
-  // reference name was at hand. The sheet's talent-zh column overrides any.
-  // Picked on weapons; the Perfect forms derive from these.
-  'Back and Forth': '來回切換',
+  // From the owner's in-game screenshots (2026-10-27). Picked on weapons; the
+  // Perfect forms derive from these.
+  'Back and Forth': '反復動作',
   'Boiling Point': '沸點',
-  'Head Scratcher': '傷腦筋',
-  'Immobilize': '定身',
+  'Head Scratcher': '搔頭者',
+  'Immobilize': '定身痛擊',
   'Rifleman': '步槍兵',
   // Perfect stat talents on named weapons; no plain form exists to derive from.
-  'Perfect Accurate': '完美精準',
+  'Perfect Accurate': '完美百步穿楊',
   'Perfect Allegro': '完美快板',
-  'Perfect Distance': '完美遠距',
-  'Perfect Extra': '完美額外',
+  'Perfect Distance': '完美遠距射手',
+  'Perfect Extra': '完美加大',
   'Perfect Jazz Hands': '完美爵士手',
   'Perfect Optimized': '完美最佳化',
   // Talents unique to one named weapon.
-  'Blossom Harvest': '繁花收割',
+  'Blossom Harvest': '開花豐收',
+  'Future Perfection': '未來完成式',
+  'Hidden Rock': '雪中送亂',
+  'Primer Rounds': '引火子彈',
+  'Sport Mode': '疾速模式',
+  'Swift': '迅捷快手',
+  // 自譯 / Translated here from the English (2026-10-26): no screenshot shows
+  // these. The sheet's talent-zh column overrides any.
   'Foam at the Mouth': '口吐白沫',
-  'Future Perfection': '未來完美',
-  'Hidden Rock': '暗礁',
-  'Primer Rounds': '底火彈',
   'Refreshing': '清涼',
-  'Sport Mode': '運動模式',
-  'Swift': '迅捷',
 };
 
 
@@ -258,8 +259,7 @@ const GEAR: Record<string, string> = {
 /**
  * 套裝天賦 / Gear-set talents: the four-piece talent, then the chest's and the
  * backpack's. From the owner's in-game screenshots (2026-10-27). Point of no
- * Return is shown in English there, so it stays English. Aces & Eights and Tip
- * of the Spear had no screenshot.
+ * Return is shown in English there, so it stays English.
  */
 const GEAR_SET: Record<string, string> = {
   'Spontaneous Combustion': '自燃', Flashpoint: '燃點', 'White Hot': '熾熱高溫',
@@ -287,6 +287,8 @@ const GEAR_SET: Record<string, string> = {
   'Rules of Engagement': '交戰規則', 'Parabellum Rounds': '備戰子彈', 'Trauma Specialist': '創傷專家',
   'Red, White and Blue': '紅、白及藍', 'Waving the Flag': '旗幟飄揚', 'Patriotic Boost': '愛國強化',
   'Feedback Loop': '回饋迴路', 'Positive Reinforcement': '正向增強', 'Short Circuit': '短路',
+  "Dead Man's Hand": '亡者手牌', 'No Limit': '沒有極限', 'Ace in the Sleeve': '袖中王牌',
+  'Aggressive Recon': '激進偵查', 'Specialized Destruction': '特殊破壞力', 'Signature Moves': '招牌動作',
   'Crowd Control': '敵對談判', 'Target Rich Environment': '目標充足環境', 'Critical Measures': '緊急措施',
 };
 

@@ -9,7 +9,7 @@ import { defineConfig } from 'vite';
  */
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/lab/division2_builder/' : '/',
-  // 各頁獨立 / One bundle per page: the loot, collectibles and map pages have no use
+  // 各頁獨立 / One bundle per page: the loot, collectibles, map and talents pages have no use
   // for the planner's dataset and should not download it.
   // The map's worker is an ES module (MapLibre 6).
   worker: { format: 'es' },
@@ -20,6 +20,7 @@ export default defineConfig(({ command }) => ({
         loot: fileURLToPath(new URL('loot/index.html', import.meta.url)),
         collectibles: fileURLToPath(new URL('collectibles/index.html', import.meta.url)),
         map: fileURLToPath(new URL('map/index.html', import.meta.url)),
+        talents: fileURLToPath(new URL('talents/index.html', import.meta.url)),
         mapEdit: fileURLToPath(new URL('map-edit/index.html', import.meta.url)),
       },
     },
