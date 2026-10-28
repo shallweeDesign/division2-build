@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { GEAR_SLOTS } from '../src/model/types.ts';
 import type { GameData } from '../src/model/types.ts';
 import { STAT_ZH } from '../src/i18n/stats.ts';
+import { SPEC_NODE_ZH, specTextZh } from '../src/i18n/spec.ts';
 import { dropOtherExotics, emptyBuild } from '../src/model/build.ts';
 
 const data: GameData = JSON.parse(readFileSync(new URL('../src/data/generated/game-data.json', import.meta.url), 'utf8'));
@@ -224,6 +225,28 @@ describe('item names', () => {
     // Not a failure: these fall back to English until confirmed names exist.
     console.info(`  ℹ ${missing.length}/${special.length} named/exotic items have no Chinese name yet`);
     expect(missing.length).toBeLessThanOrEqual(special.length);
+  });
+});
+
+describe('specialization talents', () => {
+  it('has Chinese wording for every tier', () => {
+    for (const t of data.specTalents) expect(specTextZh(t.description), t.name).toBeTruthy();
+  });
+
+  it('names every hub, talent and piece of equipment', () => {
+    // These keep their English names in game; the rest of the sidearms are weapons.
+    const english = new Set(['P320 XCompact', 'Maxim 9']);
+    for (const s of data.specializations) {
+      for (const n of s.nodes) {
+        if (n.name.endsWith(' Tactical Link') || english.has(n.name)) continue;
+        expect(SPEC_NODE_ZH[n.name] ?? ITEM_ZH[n.name], n.name).toBeTruthy();
+      }
+    }
+  });
+
+  it('fills the stat templates', () => {
+    expect(specTextZh('Increases Rifle Damage by 10%')).toBe('步槍傷害 +10%');
+    expect(specTextZh('Every 3rd reload is 50% faster')).toBe('每第 3 次裝彈速度加快 50%');
   });
 });
 

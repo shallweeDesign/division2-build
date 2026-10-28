@@ -3,6 +3,7 @@ import { STAT_ZH } from './stats.ts';
 import { ITEM_ZH, SET_ZH, SLOT_ZH } from './names.ts';
 import { TALENT_TEXT_ZH, talentZh } from './talents.ts';
 import { SKILL_ZH } from './skills.ts';
+import { SPEC_NODE_ZH, specTextZh } from './spec.ts';
 import { updateUserData, userData } from '../cloud/user-data.ts';
 
 export type Lang = 'zh-tw' | 'en';
@@ -130,6 +131,7 @@ const UI = {
   navCollectibles: { 'zh-tw': '收集品', en: 'Collectibles' },
   navMap: { 'zh-tw': '地圖', en: 'Map' },
   navTalents: { 'zh-tw': '天賦', en: 'Talents' },
+  talentsAll: { 'zh-tw': '全部', en: 'All' },
   talentsGearTab: { 'zh-tw': '裝備', en: 'Gear' },
   talentsSearch: { 'zh-tw': '搜尋天賦、裝備或內容', en: 'Search talents, items or wording' },
   talentsPickable: { 'zh-tw': '可選天賦', en: 'Selectable talents' },
@@ -142,7 +144,6 @@ const UI = {
   talentsNamedGear: { 'zh-tw': '具名裝備天賦', en: 'Named gear talents' },
   talentsExoticGear: { 'zh-tw': '奇特裝備天賦', en: 'Exotic gear talents' },
   talentsTiers: { 'zh-tw': '{n} 階', en: '{n} tiers' },
-  talentsSpecEnglish: { 'zh-tw': '專精天賦目前只有英文說明。', en: '' },
   mapBanner: {
     'zh-tw': '底圖是真實的華府街道，遊戲裡的位置是對照遊戲地圖目測放上去的。',
     en: "The base map is real-world D.C.; in-game spots were placed on it by eye from the game's map.",
@@ -428,6 +429,19 @@ export function tSkillVariant(name: string, parent: string) {
   const parentZh = tSkill(parent);
   return parentZh === parent || own.includes(parentZh) ? own : `${own}${parentZh}`;
 }
+
+/**
+ * 專精節點名 / A specialization node's name. `<Spec> Tactical Link` reads as
+ * the spec's own name plus 戰術連結, so it is composed rather than listed.
+ */
+export function tSpecNode(name: string, spec: keyof typeof UI.spec) {
+  if (current !== 'zh-tw') return name;
+  if (name.endsWith(' Tactical Link')) return `${tSpec(spec)}戰術連結`;
+  return SPEC_NODE_ZH[name] ?? ITEM_ZH[name] ?? name;
+}
+
+/** 專精天賦說明 / A spec talent's wording in the active language. */
+export const tSpecText = (en: string) => (current === 'zh-tw' ? specTextZh(en) ?? en : en);
 
 export const tSet = (name: string) => (current === 'zh-tw' ? SET_ZH[name] ?? name : name);
 

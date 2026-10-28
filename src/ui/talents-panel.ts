@@ -1,16 +1,15 @@
 /**
  * 天賦一覽 / Every talent with its wording, for reading rather than building.
  *
- * Three sub-tabs on a hash route — weapons, gear, specializations — each
+ * Sub-tabs on a hash route — all, weapons, gear, specializations — each
  * grouped the way a player meets them: talents you pick, then those that come
  * fixed on a named or exotic item (or with a gear set). A search box filters
  * the current tab by name, item or wording, in either language.
  *
- * Specialization talents have no Chinese wording yet, so they show in English.
  */
 import type { GameData, GearItem, SpecializationId, Weapon } from '../model/types.ts';
 import { GEAR_LAYOUT } from '../model/types.ts';
-import { lang, t, tItem, tSet, tSlot, tSpec, tTalent, tTalentText, tWeapon, tWeaponType } from '../i18n/index.ts';
+import { lang, t, tItem, tSet, tSlot, tSpec, tSpecNode, tSpecText, tTalent, tTalentText, tWeapon, tWeaponType } from '../i18n/index.ts';
 import { el } from './dom.ts';
 
 /** 相容代碼 / The dataset's compatibility slugs, as weapon types or gear slots. */
@@ -129,21 +128,32 @@ function specTab(data: GameData) {
           .filter((x) => x.name.startsWith(`${prefix}${n.name} Tier `))
           .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
         const text = tiers.length > 1
-          ? tiers.map((x) => `${x.name.match(/Tier (\d+)$/)?.[1] ?? ''}. ${x.description}`).join('\n')
-          : tiers[0]?.description ?? t('noTalentText');
-        return { name: n.name, title: n.name, sub: '', source: tiers.length > 1 ? fill(t('talentsTiers'), { n: String(tiers.length) }) : '', text };
+          ? tiers.map((x) => `${x.name.match(/Tier (\d+)$/)?.[1] ?? ''}. ${tSpecText(x.description)}`).join('\n')
+          : tiers[0] ? tSpecText(tiers[0].description) : t('noTalentText');
+        const title = tSpecNode(n.name, id);
+        return { name: n.name, title, sub: title === n.name ? '' : n.name, source: tiers.length > 1 ? fill(t('talentsTiers'), { n: String(tiers.length) }) : '', text };
       });
-    return group(tSpec(id), entries, lang() === 'zh-tw' ? t('talentsSpecEnglish') : undefined);
+    return group(tSpec(id), entries);
   });
 }
 
 const fill = (s: string, vars: Record<string, string>) => s.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '');
 
-const TABS = [
+const CATEGORIES = [
   { id: 'weapon', label: () => t('weapons'), render: weaponTab },
   { id: 'gear', label: () => t('talentsGearTab'), render: gearTab },
   { id: 'spec', label: () => t('specialization'), render: specTab },
 ];
+
+/** 全部 / All three at once, each under its own heading, so one search spans them. */
+function allTab(data: GameData) {
+  return CATEGORIES.map((c) => el('div', { class: 'talents-cat' }, [
+    el('h2', { class: 'talents-cat-title' }, [c.label()]),
+    ...c.render(data),
+  ]));
+}
+
+const TABS = [{ id: '', label: () => t('talentsAll'), render: allTab }, ...CATEGORIES];
 
 const current = () => TABS.find((tab) => tab.id === location.hash.slice(1)) ?? TABS[0]!;
 
@@ -160,6 +170,9 @@ function applyFilter(body: HTMLElement) {
       if (hit) shown++;
     }
     g.hidden = shown === 0;
+  }
+  for (const c of body.querySelectorAll<HTMLElement>('.talents-cat')) {
+    c.hidden = !c.querySelector('.talent-group:not([hidden])');
   }
 }
 

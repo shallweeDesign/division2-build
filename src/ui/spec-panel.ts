@@ -14,7 +14,7 @@
  * someone models the condition.
  */
 import type { GameData, SpecializationId, SpecTalent } from '../model/types.ts';
-import { t, tSpec } from '../i18n/index.ts';
+import { t, tSpec, tSpecNode, tSpecText, tStat, tWeaponType } from '../i18n/index.ts';
 import { build, update } from './store.ts';
 import { clear, el, select } from './dom.ts';
 
@@ -41,13 +41,13 @@ function talentRow(tl: SpecTalent) {
       }),
   });
   const effects = tl.effects.map((eff) =>
-    `${eff.statId} ${eff.value.n > 0 ? '+' : ''}${eff.value.n}${eff.value.percent ? '%' : ''}` +
-    (eff.weaponTypes.length ? `（${eff.weaponTypes.join('、')}）` : ''));
+    `${tStat(eff.statId, eff.statId)} ${eff.value.n > 0 ? '+' : ''}${eff.value.n}${eff.value.percent ? '%' : ''}` +
+    (eff.weaponTypes.length ? `（${eff.weaponTypes.map(tWeaponType).join('、')}）` : ''));
 
   return el('label', { class: `spec-talent${tl.effects.length ? '' : ' is-text-only'}` }, [
     box,
     el('span', { class: 'spec-tier' }, [tier]),
-    el('span', { class: 'spec-desc' }, [tl.description]),
+    el('span', { class: 'spec-desc' }, [tSpecText(tl.description)]),
     effects.length
       ? el('span', { class: 'spec-effect' }, [effects.join('　')])
       : el('span', { class: 'spec-effect muted' }, [t('notCounted')]),
@@ -73,12 +73,12 @@ export function renderSpecPanel(root: HTMLElement, data: GameData) {
       const children = spec.nodes.filter((n) => n.parent === hub.name);
       if (!children.length) continue;
       body.push(el('div', { class: 'spec-hub' }, [
-        el('h3', {}, [hub.name, hub.budget !== null ? el('span', { class: 'spec-budget' }, [`${hub.budget} pts`]) : null]),
+        el('h3', {}, [tSpecNode(hub.name, spec.id), hub.budget !== null ? el('span', { class: 'spec-budget' }, [`${hub.budget} pts`]) : null]),
         ...children.flatMap((node) => {
           const talents = talentsOfNode(data, spec.id, node.name);
           if (!talents.length) return [];
           return [el('div', { class: 'spec-node' }, [
-            el('h4', {}, [node.name]),
+            el('h4', {}, [tSpecNode(node.name, spec.id)]),
             ...talents.map(talentRow),
           ])];
         }),
@@ -97,11 +97,11 @@ export function renderSpecPanel(root: HTMLElement, data: GameData) {
       body.push(el('div', { class: 'spec-hub' }, [
         el('h3', {}, [t('specStandalone')]),
         ...withTalents.map(([node, talents]) =>
-          el('div', { class: 'spec-node' }, [el('h4', {}, [node.name]), ...talents.map(talentRow)])),
+          el('div', { class: 'spec-node' }, [el('h4', {}, [tSpecNode(node.name, spec.id)]), ...talents.map(talentRow)])),
         equipment.length
           ? el('div', {}, [
               el('p', { class: 'muted spec-equip-note' }, [t('specEquipNote')]),
-              el('ul', { class: 'spec-innate' }, equipment.map((n) => el('li', {}, [n.name]))),
+              el('ul', { class: 'spec-innate' }, equipment.map((n) => el('li', {}, [tSpecNode(n.name, spec.id)]))),
             ])
           : null,
       ]));

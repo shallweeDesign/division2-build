@@ -951,6 +951,14 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   &:focus { outline: none; border-color: $accent; }
 }
 .talents-body { display: grid; gap: 1rem; }
+.talents-cat { display: grid; gap: 1rem; }
+// The search hides by `hidden`; a display rule here would otherwise win over it.
+.talents [hidden] { display: none; }
+.talents-body:has(> .talents-cat) { gap: 2rem; }
+.talents-cat-title {
+  margin: 0; padding-bottom: .35rem; border-bottom: 1px solid $accent;
+  font-size: 1.05rem; color: $accent; letter-spacing: .06em;
+}
 .talent-group {
   .col-heading { display: flex; align-items: baseline; gap: .5rem; }
   .talent-count { color: $muted; font-size: .78rem; font-weight: 400; }
