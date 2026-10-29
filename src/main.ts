@@ -68,7 +68,6 @@ function renderChrome() {
     el('span', {}, [t('dataBanner')]),
     el('a', { href: data.meta.sourceUrl, target: '_blank', rel: 'noopener' }, [data.meta.source]),
   );
-  document.title = t('title');
 }
 
 function renderAll() {

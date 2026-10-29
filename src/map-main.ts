@@ -23,7 +23,6 @@ function renderAll() {
     }, [lang() === 'zh-tw' ? 'EN' : '中文']),
   ]);
   banner.replaceChildren(el('span', {}, [t('mapBanner')]));
-  document.title = `${t('navMap')} · ${t('title')}`;
   renderMapPage(root);
 }
 

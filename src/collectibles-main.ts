@@ -22,7 +22,6 @@ function renderAll() {
     }, [lang() === 'zh-tw' ? 'EN' : '中文']),
   ]);
   banner.replaceChildren(el('span', {}, [t('collectBanner')]));
-  document.title = `${t('navCollectibles')} · ${t('title')}`;
   renderCollectiblesPanel(root);
 }
 

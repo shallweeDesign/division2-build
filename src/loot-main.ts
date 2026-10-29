@@ -32,7 +32,6 @@ function renderAll() {
     el('span', {}, [t('lootBanner')]),
     el('a', { href: LOOT_PAGE, target: '_blank', rel: 'noopener' }, ['Raigulus']),
   );
-  document.title = `${t('navLoot')} · ${t('title')}`;
   renderLootPanel(root);
 }
 

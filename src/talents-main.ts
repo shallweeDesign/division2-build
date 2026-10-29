@@ -29,7 +29,6 @@ function renderAll() {
     }, [lang() === 'zh-tw' ? 'EN' : '中文']),
   ]);
   banner.replaceChildren(el('span', {}, [t('dataBanner')]));
-  document.title = `${t('navTalents')} · ${t('title')}`;
   renderTalentsPanel(root, tray, data);
 }
 

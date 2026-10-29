@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import { seo } from './scripts/seo.ts';
 
 /**
  * 部署路徑 / The app is served from a sub-path of the Pages site, not the root:
@@ -13,6 +14,8 @@ export default defineConfig(({ command }) => ({
   // for the planner's dataset and should not download it.
   // The map's worker is an ES module (MapLibre 6).
   worker: { format: 'es' },
+  // 搜尋引擎 / Descriptions, link previews and sitemap.xml; see scripts/seo.ts.
+  plugins: [seo()],
   build: {
     rollupOptions: {
       input: {

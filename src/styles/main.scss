@@ -944,7 +944,10 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 
 // 天賦一覽 / Talents page: sub-tabs and search on one bar, then the lists — in
 // the All tab one column per category — with picks pinned in a tray on top.
-.talents { display: grid; gap: 1rem; }
+.talents { display: grid; gap: 1rem; overflow-x: clip; }
+// 防縮放 / Quick taps on cards and tray buttons must not trigger the phone's
+// double-tap zoom, which leaves the page wider than the screen.
+.talent-list > li, .talents-tray button, .talents .subtab { touch-action: manipulation; }
 .talents-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; }
 .talents-search {
   flex: 1 1 16rem; max-width: 22rem; padding: .4rem .6rem;
@@ -1032,7 +1035,8 @@ $hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   }
 }
 @media (max-width: 480px) {
-  .talents-search { max-width: none; }
+  // 16px keeps iOS Safari from zooming in when the search box takes focus.
+  .talents-search { max-width: none; font-size: 16px; }
   .talent-group .talent-head, .is-all .talent-group .talent-head { flex-direction: column; align-items: flex-start; gap: .1rem; }
   .talent-group .talent-source, .is-all .talent-group .talent-source { text-align: left; }
   .talents-tray .tray-list { max-height: 28vh; grid-template-columns: minmax(0, 1fr); }
